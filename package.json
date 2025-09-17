@@ -1,0 +1,11 @@
+{
+  "name": "nexus-knowledge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first AI conversation management and knowledge synthesis tool.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Gemini AI Agent",
+  "license": "UNLICENSED"
+}

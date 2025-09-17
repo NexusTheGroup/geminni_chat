@@ -1,0 +1,12 @@
+[project]
+name = "nexus_knowledge"
+version = "0.1.0"
+description = "Core Python backend for the NexusKnowledge system."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.format]
+quote-style = "double"

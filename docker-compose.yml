@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mlflow:
+    image: python:3.11-slim
+    container_name: nexus-mlflow
+    command: >
+      bash -c "pip install mlflow boto3 &&
+      mlflow server \
+        --host 0.0.0.0 \
+        --port 5000 \
+        --backend-store-uri ./mlruns \
+        --default-artifact-root ./mlruns"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow_data:/mlflow_data
+    working_dir: /mlflow_data
+
