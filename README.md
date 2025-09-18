@@ -149,7 +149,38 @@ Run the automated test suite from your activated virtual environment:
 ./.venv/bin/pytest
 ```
 
-Launch the lightweight UI at <http://localhost:8000/> to run searches and submit feedback.
+Launch the modern React frontend at <http://localhost:3000/> for the full user experience, or the lightweight UI at <http://localhost:8000/> for basic functionality.
+
+## Frontend Application
+
+The project includes a comprehensive React/TypeScript frontend application located in the `frontend/` directory:
+
+### Features
+
+- **Modern Architecture**: React 18, TypeScript 5, Vite build system
+- **Material-UI Components**: Beautiful, accessible UI with custom theming
+- **State Management**: Redux Toolkit with RTK Query for API integration
+- **Advanced Search**: Multi-faceted search with filtering and autocomplete
+- **Analytics Dashboard**: Interactive charts and correlation analysis
+- **Data Management**: Ingestion monitoring and export tools
+- **Responsive Design**: Mobile-first approach with full accessibility compliance
+
+### Development
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Production Build
+
+```bash
+cd frontend
+npm run build
+```
+
+The frontend integrates with all 14 backend API endpoints and provides a comprehensive user interface for the NexusKnowledge system.
 
 Step 4: YOLO Mode Initialization (Required for Each Session)
 Before giving the agent a major task, grant it permission to run its tools non-stop.

@@ -67,3 +67,20 @@ tmp/
 .temp/
 *.tmp
 db_data/
+
+# Coverage reports
+.coverage
+htmlcov/
+.coverage.*
+
+# Cursor IDE
+.cursor/
+
+# Frontend build artifacts
+frontend/dist/
+frontend/node_modules/
+frontend/lighthouse-report.json
+frontend/package-lock.json
+
+# MCP server logs and temp files
+*.err
