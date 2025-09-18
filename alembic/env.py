@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from nexus_knowledge.db import models  # noqa: F401  # import for side effects
-from nexus_knowledge.db.base import Base
-from nexus_knowledge.db.session import get_database_url
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from nexus_knowledge.db import models  # noqa: F401  # import for side effects
+from nexus_knowledge.db.base import Base
+from nexus_knowledge.db.session import get_database_url
 
 config = context.config
 

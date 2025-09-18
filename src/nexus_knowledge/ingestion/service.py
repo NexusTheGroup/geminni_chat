@@ -2,21 +2,25 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import TypeAlias
+
+from sqlalchemy.orm import Session
 
 from nexus_knowledge.db.models import ConversationTurn
 from nexus_knowledge.db.repository import (
     create_conversation_turns,
     create_raw_data,
     get_raw_data,
+    get_raw_data_by_hash,
     update_raw_data_status,
 )
-from sqlalchemy.orm import Session
 
 JSONPrimitive = str | int | float | bool | None
 JSONValue: TypeAlias = JSONPrimitive | dict[str, "JSONValue"] | list["JSONValue"]
@@ -45,12 +49,21 @@ def ingest_raw_payload(
     source_id: str | None = None,
 ) -> uuid.UUID:
     """Persist raw ingestion payload and return its identifier."""
-    serialized = (
-        content if isinstance(content, str) else json.dumps(content, ensure_ascii=False)
-    )
+    serialized = _serialise_content(content)
+    content_hash = _compute_content_hash(serialized)
     metadata_payload = dict(metadata or {})
     if source_id:
         metadata_payload.setdefault("source_id", source_id)
+
+    existing = get_raw_data_by_hash(session, content_hash)
+    if existing is not None:
+        merged_metadata = {**(existing.metadata_ or {}), **metadata_payload}
+        if merged_metadata != existing.metadata_:
+            existing.metadata_ = merged_metadata
+        if source_id and not existing.source_id:
+            existing.source_id = source_id
+        session.flush()
+        return existing.id
 
     record = create_raw_data(
         session,
@@ -58,8 +71,56 @@ def ingest_raw_payload(
         content=serialized,
         source_id=source_id,
         metadata=metadata_payload,
+        content_hash=content_hash,
     )
     return record.id
+
+
+def ingest_markdown_file(
+    session: Session,
+    path: str | Path,
+    *,
+    dataset: str | None = None,
+    tags: Sequence[str] | None = None,
+) -> uuid.UUID:
+    """Ingest a Markdown document as a single-turn conversation."""
+    file_path = Path(path)
+    content = file_path.read_text(encoding="utf-8")
+    title = _extract_markdown_title(content) or file_path.stem
+    mtime = datetime.fromtimestamp(file_path.stat().st_mtime, tz=UTC)
+
+    metadata: JSONDict = {
+        "title": title,
+        "source_path": str(file_path.resolve()),
+        "source_filename": file_path.name,
+        "source_modified_at": mtime.isoformat(),
+        "imported_at": datetime.now(UTC).isoformat(),
+    }
+    if dataset:
+        metadata["dataset"] = dataset
+    if tags:
+        metadata["tags"] = list(tags)
+
+    payload: JSONDict = {
+        "version": "1.0",
+        "source_platform": "markdown",
+        "source_id": str(file_path.resolve()),
+        "messages": [
+            {
+                "role": "user",
+                "content": content,
+                "timestamp": mtime.isoformat(),
+            },
+        ],
+    }
+
+    return ingest_raw_payload(
+        session,
+        source_type="markdown",
+        content=payload,
+        metadata=metadata,
+        source_id=str(file_path.resolve()),
+    )
 
 
 def normalize_raw_data(session: Session, record_id: uuid.UUID) -> int:
@@ -120,6 +181,24 @@ def normalize_raw_data(session: Session, record_id: uuid.UUID) -> int:
         processed_at=datetime.now(UTC),
     )
     return len(turns)
+
+
+def _serialise_content(content: JSONValue) -> str:
+    if isinstance(content, str):
+        return content
+    return json.dumps(content, ensure_ascii=False, sort_keys=True)
+
+
+def _compute_content_hash(serialized_content: str) -> str:
+    return hashlib.sha256(serialized_content.encode("utf-8")).hexdigest()
+
+
+def _extract_markdown_title(content: str) -> str | None:
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            return stripped.lstrip("# ").strip() or None
+    return None
 
 
 def _flatten_conversations(  # noqa: C901

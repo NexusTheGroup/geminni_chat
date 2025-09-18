@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import re
 
-from nexus_knowledge.db.models import ConversationTurn, Entity
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
+
+from nexus_knowledge.db.models import ConversationTurn, Entity
 
 TOKEN_PATTERN = re.compile(r"[\w']+")
 SNIPPET_MAX_LENGTH = 200

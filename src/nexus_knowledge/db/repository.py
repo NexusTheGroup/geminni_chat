@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterator, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -28,6 +28,7 @@ def create_raw_data(  # noqa: PLR0913
     source_id: str | None = None,
     metadata: dict[str, Any] | None = None,
     status: str = "INGESTED",
+    content_hash: str | None = None,
 ) -> RawData:
     """Insert a raw_data record and return the persisted instance."""
     record = RawData(
@@ -36,6 +37,7 @@ def create_raw_data(  # noqa: PLR0913
         source_id=source_id,
         metadata_=metadata or {},
         status=status,
+        content_hash=content_hash,
     )
     session.add(record)
     session.flush()
@@ -45,6 +47,12 @@ def create_raw_data(  # noqa: PLR0913
 def get_raw_data(session: Session, record_id: uuid.UUID) -> RawData | None:
     """Fetch a raw_data entry by its identifier."""
     stmt = select(RawData).where(RawData.id == record_id)
+    return session.execute(stmt).scalar_one_or_none()
+
+
+def get_raw_data_by_hash(session: Session, content_hash: str) -> RawData | None:
+    """Fetch a raw_data entry by its content hash."""
+    stmt = select(RawData).where(RawData.content_hash == content_hash)
     return session.execute(stmt).scalar_one_or_none()
 
 
@@ -83,14 +91,31 @@ def create_conversation_turns(
 def list_conversation_turns(
     session: Session,
     conversation_id: uuid.UUID,
-) -> Iterable[ConversationTurn]:
+) -> Sequence[ConversationTurn]:
     """Return all conversation turns for a given conversation identifier."""
+    return list(
+        iter_conversation_turns(
+            session,
+            conversation_id=conversation_id,
+            chunk_size=250,
+        ),
+    )
+
+
+def iter_conversation_turns(
+    session: Session,
+    *,
+    conversation_id: uuid.UUID,
+    chunk_size: int = 250,
+) -> Iterator[ConversationTurn]:
+    """Stream conversation turns for the provided conversation identifier."""
     stmt = (
         select(ConversationTurn)
         .where(ConversationTurn.conversation_id == conversation_id)
         .order_by(ConversationTurn.turn_index)
+        .execution_options(stream_results=True, yield_per=chunk_size)
     )
-    return session.scalars(stmt).all()
+    return session.execute(stmt).scalars()
 
 
 def list_turns_for_raw(
@@ -98,12 +123,23 @@ def list_turns_for_raw(
     raw_data_id: uuid.UUID,
 ) -> Sequence[ConversationTurn]:
     """Fetch all conversation turns associated with a raw payload."""
+    return list(iter_turns_for_raw(session, raw_data_id=raw_data_id))
+
+
+def iter_turns_for_raw(
+    session: Session,
+    *,
+    raw_data_id: uuid.UUID,
+    chunk_size: int = 250,
+) -> Iterator[ConversationTurn]:
+    """Yield conversation turns for a raw payload in chunks to limit memory pressure."""
     stmt = (
         select(ConversationTurn)
         .where(ConversationTurn.raw_data_id == raw_data_id)
         .order_by(ConversationTurn.conversation_id, ConversationTurn.turn_index)
+        .execution_options(stream_results=True, yield_per=chunk_size)
     )
-    return session.scalars(stmt).all()
+    return session.execute(stmt).scalars()
 
 
 def create_entities(session: Session, entities: Sequence[Entity]) -> Sequence[Entity]:
@@ -139,11 +175,21 @@ def create_correlation_candidates(
 def list_correlation_candidates(
     session: Session,
     raw_data_id: uuid.UUID,
+    *,
+    status: str | None = None,
+    limit: int | None = None,
+    order_by_score: bool = True,
 ) -> Sequence[CorrelationCandidate]:
     """Fetch correlation candidates scoped to a raw payload."""
     stmt = select(CorrelationCandidate).where(
         CorrelationCandidate.raw_data_id == raw_data_id,
     )
+    if status is not None:
+        stmt = stmt.where(CorrelationCandidate.status == status)
+    if order_by_score:
+        stmt = stmt.order_by(CorrelationCandidate.score.desc())
+    if limit is not None:
+        stmt = stmt.limit(limit)
     return session.scalars(stmt).all()
 
 

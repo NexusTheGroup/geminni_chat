@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from nexus_knowledge.analysis import run_analysis_for_raw_data
 from nexus_knowledge.correlation import generate_candidates_for_raw
 from nexus_knowledge.correlation.pipeline import (

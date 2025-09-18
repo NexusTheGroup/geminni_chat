@@ -1,0 +1,16 @@
+# Ignore database data directory
+db_data/
+mlflow_data/
+htmlcov/
+venv/
+node_modules/
+.git/
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+*.log
+.DS_Store
+*.swp
+*.swo
+*~

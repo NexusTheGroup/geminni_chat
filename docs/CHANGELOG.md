@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Structured JSON logging with correlation and task identifiers, request middleware, and Celery instrumentation (`src/nexus_knowledge/observability/`).
+- Content-hash based ingestion deduplication, Markdown connector, and deterministic Obsidian exports with runbook + golden tests (`src/nexus_knowledge/ingestion/`, `src/nexus_knowledge/export/obsidian.py`, `docs/IMPORT_EXPORT_RUNBOOK.md`).
+- MLflow task wrapper utilities with artifact logging and accompanying tests (`src/nexus_knowledge/experiment_tracking.py`, `tests/mlflow/test_experiment_tracking.py`).
+- DVC pipeline for processed sample data plus reproducibility guide (`dvc.yaml`, `scripts/dvc/prepare_sample_dataset.py`, `tests/dvc/test_pipeline.py`, `docs/EXPERIMENTS_GUIDE.md`).
+- Health and readiness probes plus Prometheus metrics endpoint (`/api/v1/health/live`, `/api/v1/health/ready`, `/api/v1/metrics`).
+- Observability design + runbook documentation (`docs/P8_OBSERVABILITY_DESIGN.md`, `docs/observability_runbook.md`).
+- Test coverage for observability features including log context, health aggregations, and metrics exposure (`tests/observability/`, `tests/api/test_api.py`).
+- Performance-focused database indexes and streaming repository helpers (`alembic/versions/20240306_03_performance_indexes.py`, `iter_turns_for_raw`).
+- Celery worker configuration tuned for single-user throughput (prefetch, timeouts, retries) with coverage (`src/nexus_knowledge/tasks.py`, `tests/tasks/test_celery_config.py`).
+- Pagination and memory-safe batch processing for correlation pipelines plus API filtering (`src/nexus_knowledge/api/main.py`, `tests/api/test_api.py`).
+- Single-user performance benchmark module and CLI (`src/nexus_knowledge/performance/benchmarks.py`, `scripts/benchmarks/run_single_user_benchmark.py`).
+- Centralised configuration loader with environment validation and schema tracking (`src/nexus_knowledge/config/`, `config/schema.json`).
+- Configuration validation/migration CLIs (`scripts/config/validate.py`, `scripts/config/migrate.py`) with accompanying tests (`tests/config/test_settings.py`).
+- Developer ops scripts for database tasks, worker control, log tailing, and health checks (`scripts/db/`, `scripts/worker/control.py`, `scripts/logs/tail.py`, `scripts/health/check.py`).
+- `.env.example` template and expanded configuration documentation (`docs/ENV.md`, README updates).
 - Alembic-based bootstrap migrations and SQLAlchemy models for the canonical schema (`alembic/`, `src/nexus_knowledge/db/models.py`).
 - FastAPI `/api/v1/status` and asynchronous `/api/v1/feedback` workflow with Celery persistence (`src/nexus_knowledge/api/main.py`, `src/nexus_knowledge/tasks.py`).
 - MLflow helper module and CLI smoke test (`src/nexus_knowledge/mlflow_utils.py`, `scripts/log_dummy_experiment.py`).

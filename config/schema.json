@@ -1,0 +1,171 @@
+{
+  "version": "2024-03-07",
+  "fields": [
+    {
+      "name": "APP_ENV",
+      "description": "Deployment environment (local, test, prod).",
+      "default": "local",
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "DATABASE_URL",
+      "description": "SQLAlchemy database connection string.",
+      "environments": {
+        "local": "required",
+        "test": "required",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "REDIS_URL",
+      "description": "Redis broker/back-end for Celery.",
+      "environments": {
+        "local": "required",
+        "test": "required",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "MLFLOW_TRACKING_URI",
+      "description": "Tracking URI for MLflow experiments.",
+      "environments": {
+        "local": "required",
+        "test": "required",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "SECRET_KEY",
+      "description": "Application secret used for signing tokens and encryption.",
+      "environments": {
+        "local": "required",
+        "test": "required",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "LOG_LEVEL",
+      "description": "Python logging level (DEBUG, INFO, etc).",
+      "default": "INFO",
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "API_ROOT",
+      "description": "Base path for HTTP API routes.",
+      "default": "/api/v1",
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "optional"
+      }
+    },
+    {
+      "name": "BENCHMARK_THRESHOLDS_PATH",
+      "description": "Optional path to a JSON file overriding benchmark thresholds.",
+      "default": null,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "optional"
+      }
+    },
+    {
+      "name": "CELERY_WORKER_CONCURRENCY",
+      "description": "Number of worker processes/threads for Celery.",
+      "default": 2,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "CELERY_PREFETCH_MULTIPLIER",
+      "description": "Number of tasks prefetched by each Celery worker.",
+      "default": 1,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "CELERY_TASK_SOFT_TIME_LIMIT",
+      "description": "Soft time limit (seconds) for Celery tasks.",
+      "default": 600,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "CELERY_TASK_TIME_LIMIT",
+      "description": "Hard time limit (seconds) for Celery tasks.",
+      "default": 900,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "CELERY_TASK_RETRY_DELAY",
+      "description": "Default retry delay for Celery tasks (seconds).",
+      "default": 5,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "CELERY_TASK_RETRY_BACKOFF_MAX",
+      "description": "Maximum exponential backoff (seconds) for Celery retries.",
+      "default": 600,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "required"
+      }
+    },
+    {
+      "name": "CELERY_MAX_TASKS_PER_CHILD",
+      "description": "Number of tasks processed before a worker is recycled.",
+      "default": 200,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "optional"
+      }
+    },
+    {
+      "name": "CELERY_BROKER_POOL_LIMIT",
+      "description": "Celery broker connection pool size.",
+      "default": 10,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "optional"
+      }
+    },
+    {
+      "name": "CELERY_BROKER_CONN_TIMEOUT",
+      "description": "Celery broker connection timeout in seconds.",
+      "default": 5.0,
+      "environments": {
+        "local": "optional",
+        "test": "optional",
+        "prod": "optional"
+      }
+    }
+  ]
+}

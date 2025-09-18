@@ -1,149 +1,131 @@
-"""Export analyzed data to Obsidian-compatible Markdown files."""
+"""Obsidian export helpers with deterministic filenames and metadata."""
 
 from __future__ import annotations
 
+import re
 import uuid
-from collections import Counter, defaultdict
-from collections.abc import Iterable
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from nexus_knowledge.db.models import ConversationTurn, Relationship
-from nexus_knowledge.db.repository import (
-    get_raw_data,
-    list_entities_for_raw,
-    list_relationships_for_raw,
-    list_turns_for_raw,
-)
 from sqlalchemy.orm import Session
+
+from nexus_knowledge.db.repository import get_raw_data, list_turns_for_raw
 
 
 class ExportError(RuntimeError):
-    """Raised when the export pipeline cannot complete."""
+    """Raised when an export operation fails."""
 
 
 def export_to_obsidian(
     session: Session,
     raw_data_id: uuid.UUID,
-    export_path: str | Path,
+    export_path: str,
 ) -> list[Path]:
-    """Export conversations related to the raw payload into Markdown files."""
+    """Export a conversation to Obsidian-flavoured Markdown.
+
+    Returns a list of created files (currently a single note).
+    """
     record = get_raw_data(session, raw_data_id)
     if record is None:
         raise ExportError(f"raw_data {raw_data_id} not found")
 
-    turns = list_turns_for_raw(session, raw_data_id)
+    turns: Sequence = list_turns_for_raw(session, raw_data_id)
     if not turns:
-        raise ExportError("No normalized conversation turns to export")
-
-    entities = list_entities_for_raw(session, raw_data_id)
-    relationships = list_relationships_for_raw(session, raw_data_id)
-
-    turn_id_to_conversation_id = {
-        str(turn.id): str(turn.conversation_id) for turn in turns
-    }
-    entity_conversation_map = {
-        str(entity.id): turn_id_to_conversation_id.get(str(entity.conversation_turn_id))
-        for entity in entities
-    }
+        raise ExportError("No turns available to export")
 
     export_dir = Path(export_path)
     export_dir.mkdir(parents=True, exist_ok=True)
 
-    turns_by_conversation: dict[str, list[ConversationTurn]] = defaultdict(list)
-    for turn in turns:
-        turns_by_conversation[str(turn.conversation_id)].append(turn)
-
-    sentiments_by_turn: dict[str, list[str]] = defaultdict(list)
-    for entity in entities:
-        sentiments_by_turn[str(entity.conversation_turn_id)].append(entity.value)
-
-    relationships_by_conversation: dict[str, list[Relationship]] = defaultdict(list)
-    for relationship in relationships:
-        source_conv = entity_conversation_map.get(str(relationship.source_entity_id))
-        target_conv = entity_conversation_map.get(str(relationship.target_entity_id))
-        conversation_id = source_conv or target_conv
-        if conversation_id:
-            relationships_by_conversation[conversation_id].append(relationship)
-
-    written_files: list[Path] = []
-    for conversation_id, conversation_turns in turns_by_conversation.items():
-        conversation_turns.sort(key=lambda turn: turn.turn_index)
-        file_path = export_dir / f"conversation-{conversation_id}.md"
-        front_matter = _build_front_matter(
-            source_type=record.source_type,
-            raw_data_id=raw_data_id,
-            conversation_id=conversation_id,
-            conversation_turns=conversation_turns,
-            sentiments_by_turn=sentiments_by_turn,
-            relationships=relationships_by_conversation.get(conversation_id, []),
+    metadata: dict[str, Any] = dict(record.metadata_ or {})
+    if isinstance(metadata.get("tags"), list):
+        metadata["tags"] = sorted(
+            str(tag) for tag in metadata["tags"] if tag is not None
         )
-        body = _build_body(conversation_turns, sentiments_by_turn)
-        file_path.write_text(front_matter + "\n" + body, encoding="utf-8")
-        written_files.append(file_path)
+    title = str(metadata.get("title") or f"Conversation {raw_data_id}")
+    slug = _slugify(title) or raw_data_id.hex
+    file_path = export_dir / f"{slug}.md"
 
-    return written_files
-
-
-def _build_front_matter(  # noqa: PLR0913
-    *,
-    source_type: str,
-    raw_data_id: uuid.UUID,
-    conversation_id: str,
-    conversation_turns: Iterable[ConversationTurn],
-    sentiments_by_turn: dict[str, list[str]],
-    relationships: Iterable[Relationship],
-) -> str:
-    sentiment_counts = Counter()
-    for turn in conversation_turns:
-        sentiment_counts.update(sentiments_by_turn.get(str(turn.id), []))
-
-    relationships_payload = [
+    frontmatter = _build_frontmatter(
         {
-            "relationship_id": str(rel.id),
-            "type": rel.type,
-            "strength": rel.strength,
-        }
-        for rel in relationships
-    ]
+            "version": "1.0",
+            "raw_data_id": str(raw_data_id),
+            "source_type": record.source_type,
+            "source_id": record.source_id,
+            "content_hash": record.content_hash,
+            "title": title,
+            "exported_at": datetime.now(UTC).isoformat(),
+            **metadata,
+        },
+    )
 
-    front_matter_lines = [
-        "---",
-        f"raw_data_id: {raw_data_id}",
-        f"conversation_id: {conversation_id}",
-        f"source_type: {source_type}",
-    ]
+    body_lines: list[str] = [f"# {title}"]
+    for turn in turns:
+        heading = f"## {turn.speaker.title()} - turn {turn.turn_index}"
+        body_lines.append(heading)
+        timestamp = turn.timestamp
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=UTC)
+        body_lines.append(timestamp.isoformat())
+        text = (turn.text or "").strip()
+        if text:
+            body_lines.append("")
+            body_lines.append(text)
+        body_lines.append("")
 
-    if sentiment_counts:
-        front_matter_lines.append("sentiment_summary:")
-        for sentiment, count in sentiment_counts.items():
-            front_matter_lines.append(f"  {sentiment.lower()}: {count}")
-    else:
-        front_matter_lines.append("sentiment_summary: {}")
-
-    if relationships_payload:
-        front_matter_lines.append("relationships:")
-        for rel in relationships_payload:
-            front_matter_lines.append("  -")
-            front_matter_lines.append(f"    relationship_id: {rel['relationship_id']}")
-            front_matter_lines.append(f"    type: {rel['type']}")
-            if rel["strength"] is not None:
-                front_matter_lines.append(f"    strength: {rel['strength']}")
-    else:
-        front_matter_lines.append("relationships: []")
-
-    front_matter_lines.append("---")
-    return "\n".join(front_matter_lines)
+    content = (
+        frontmatter + "\n".join(line.rstrip() for line in body_lines).rstrip() + "\n"
+    )
+    file_path.write_text(content, encoding="utf-8")
+    return [file_path]
 
 
-def _build_body(
-    conversation_turns: list[ConversationTurn],
-    sentiments_by_turn: dict[str, list[str]],
-) -> str:
-    lines = [f"# Conversation {conversation_turns[0].conversation_id}"]
-    for turn in conversation_turns:
-        sentiments = ", ".join(sentiments_by_turn.get(str(turn.id), []))
-        sentiment_suffix = f" (sentiment: {sentiments})" if sentiments else ""
-        lines.append(
-            f"- **{turn.turn_index:02d} {turn.speaker}:** {turn.text}{sentiment_suffix}",
-        )
+def _build_frontmatter(payload: dict[str, Any]) -> str:
+    lines: list[str] = ["---"]
+    for key in sorted(payload):
+        value = payload[key]
+        if value is None:
+            continue
+        lines.extend(_format_yaml_entry(key, value))
+    lines.append("---\n")
     return "\n".join(lines)
+
+
+def _format_yaml_entry(key: str, value: Any) -> list[str]:
+    if isinstance(value, list):
+        items = [f"{key}:"]
+        for item in value:
+            items.append(f"  - {_escape_yaml_value(item)}")
+        return items
+    if isinstance(value, dict):
+        items = [f"{key}:"]
+        for child_key in sorted(value):
+            child_value = value[child_key]
+            if child_value is None:
+                continue
+            child_lines = _format_yaml_entry(child_key, child_value)
+            items.extend([f"  {line}" for line in child_lines])
+        return items
+    return [f"{key}: {_escape_yaml_value(value)}"]
+
+
+def _escape_yaml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    text = str(value)
+    if not text:
+        return "''"
+    if any(char in text for char in ":#[]{}\n\r") or text.strip() != text:
+        escaped = text.replace('"', '\\"')
+        return f'"{escaped}"'
+    return text
+
+
+def _slugify(value: str) -> str | None:
+    normalised = value.lower()
+    cleaned = re.sub(r"[^a-z0-9]+", "-", normalised)
+    slug = cleaned.strip("-")
+    return slug or None

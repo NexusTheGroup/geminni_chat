@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from nexus_knowledge.ingestion import ingest_raw_payload, normalize_raw_data
 from nexus_knowledge.search import hybrid_search
 from nexus_knowledge.search.service import SearchError

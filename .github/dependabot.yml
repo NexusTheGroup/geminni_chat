@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    reviewers:
+      - "NexusTheGroup/maintainers"
+    assignees:
+      - "NexusTheGroup/maintainers"
+
+  # Enable version updates for Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    reviewers:
+      - "NexusTheGroup/maintainers"
+    assignees:
+      - "NexusTheGroup/maintainers"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "docker"
+      include: "scope"

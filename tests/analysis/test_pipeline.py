@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import mlflow
 import pytest
+
 from nexus_knowledge.analysis import run_analysis_for_raw_data
 from nexus_knowledge.analysis.pipeline import AnalysisError
 from nexus_knowledge.db import repository

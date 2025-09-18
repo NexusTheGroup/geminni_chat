@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Generator
 from contextlib import contextmanager
 
@@ -10,18 +9,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from nexus_knowledge.config import get_settings, reload_settings
+
 _ENGINE: Engine | None = None
 _SESSION_FACTORY: sessionmaker[Session] | None = None
 
 
-DEFAULT_DATABASE_URL = (
-    "postgresql+psycopg2://user:password@localhost:5432/nexus_knowledge"
-)
-
-
 def get_database_url() -> str:
-    """Return the configured database URL with a sensible default."""
-    return os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
+    """Return the configured database URL from cached settings."""
+    return get_settings().database_url
 
 
 def get_engine(echo: bool = False, url: str | None = None) -> Engine:
@@ -80,6 +76,7 @@ def reset_session_factory() -> None:
     global _ENGINE, _SESSION_FACTORY  # noqa: PLW0603
     _ENGINE = None
     _SESSION_FACTORY = None
+    reload_settings()
 
 
 def get_session_dependency() -> Generator[Session, None, None]:

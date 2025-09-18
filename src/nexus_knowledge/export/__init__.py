@@ -1,5 +1,5 @@
 """Export utilities for NexusKnowledge."""
 
-from .obsidian import export_to_obsidian
+from .obsidian import ExportError, export_to_obsidian
 
-__all__ = ["export_to_obsidian"]
+__all__ = ["ExportError", "export_to_obsidian"]

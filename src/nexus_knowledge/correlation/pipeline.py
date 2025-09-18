@@ -6,19 +6,20 @@ import itertools
 import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy.orm import Session
+
 from nexus_knowledge.db.models import CorrelationCandidate, Relationship
 from nexus_knowledge.db.repository import (
     create_correlation_candidates,
     create_relationships,
     get_raw_data,
+    iter_turns_for_raw,
     list_correlation_candidates,
     list_entities_for_raw,
     list_relationships_for_raw,
-    list_turns_for_raw,
     update_candidate_status,
     update_raw_data_status,
 )
-from sqlalchemy.orm import Session
 
 
 class CorrelationError(RuntimeError):
@@ -49,14 +50,20 @@ def generate_candidates_for_raw(
         update_raw_data_status(session, raw_data_id, status="CORRELATION_SKIPPED")
         raise CorrelationError("No sentiment entities available for correlation")
 
-    turns = {turn.id: turn for turn in list_turns_for_raw(session, raw_data_id)}
+    turns = {
+        turn.id: turn for turn in iter_turns_for_raw(session, raw_data_id=raw_data_id)
+    }
     if not turns:
         update_raw_data_status(session, raw_data_id, status="CORRELATION_SKIPPED")
         raise CorrelationError("No normalized turns available for correlation")
 
     existing_pairs = {
         _pair_key(candidate.source_entity_id, candidate.target_entity_id)
-        for candidate in list_correlation_candidates(session, raw_data_id)
+        for candidate in list_correlation_candidates(
+            session,
+            raw_data_id,
+            order_by_score=False,
+        )
     }
 
     new_candidates: list[CorrelationCandidate] = []
@@ -126,11 +133,11 @@ def fuse_candidates_for_raw(
     if record is None:
         raise CorrelationError(f"raw_data {raw_data_id} not found")
 
-    pending_candidates = [
-        candidate
-        for candidate in list_correlation_candidates(session, raw_data_id)
-        if candidate.status == "PENDING"
-    ]
+    pending_candidates = list_correlation_candidates(
+        session,
+        raw_data_id,
+        status="PENDING",
+    )
     if not pending_candidates:
         return {"confirmed": 0, "rejected": 0}
 

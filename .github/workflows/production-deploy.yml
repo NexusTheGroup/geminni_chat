@@ -1,0 +1,105 @@
+name: NexusKnowledge Production Deployment
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  KUBE_CONTEXT: production-cluster
+  ARGOCD_APP: nexusknowledge-production
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test -- --coverage
+
+      - name: Security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload security results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Performance testing
+        run: npm run test:performance
+
+      - name: Build application
+        run: npm run build
+
+  build-and-push:
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-to-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Deploy to staging
+        uses: argoproj/actions/github-application-sync@v1
+        with:
+          application: nexusknowledge-staging
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  production-deployment:
+    needs: deploy-to-staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger ArgoCD sync
+        uses: argoproj/actions/github-application-sync@v1
+        with:
+          application: ${{ env.ARGOCD_APP }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for deployment
+        run: |
+          ./scripts/wait-for-deployment.sh production
+
+      - name: Run validation tests
+        run: |
+          ./scripts/run-validation-tests.sh
+
+  rollback-monitoring:
+    needs: production-deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Monitor deployment health
+        run: |
+          ./scripts/monitor-deployment.sh

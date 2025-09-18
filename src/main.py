@@ -1,15 +1,17 @@
 import time
 
-from nexus_knowledge.tasks import long_running_api_call
+from nexus_knowledge.tasks import persist_feedback
 
 
-def submit_job():
-    print("Submitting long-running task...")
-    task = long_running_api_call.delay("sample input data")
+def submit_job() -> None:
+    print("Submitting feedback persistence task...")
+    task = persist_feedback.delay(
+        "00000000-0000-0000-0000-000000000000",
+        {"feedback_type": "demo", "message": "Sample", "user_id": None},
+        correlation_id="demo-corr-id",
+    )
     print(f"Task submitted with ID: {task.id}")
     print("Main application continues to be responsive.")
-    # In a real application, you might store task.id to check status later
-    # For demonstration, we'll just print it.
 
 
 if __name__ == "__main__":

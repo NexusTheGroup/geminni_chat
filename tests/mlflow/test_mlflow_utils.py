@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import mlflow
+
 from nexus_knowledge import mlflow_utils
 
 

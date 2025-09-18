@@ -1,3 +1,9 @@
+"""NexusKnowledge API Main Application.
+
+This module provides the main FastAPI application for the NexusKnowledge system,
+including all API endpoints for chat, knowledge management, and data ingestion.
+"""
+
 from __future__ import annotations
 
 import importlib.metadata
@@ -5,7 +11,11 @@ import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
+
+from nexus_knowledge.config import get_settings
 from nexus_knowledge.db.repository import (
     get_raw_data,
     get_user_feedback,
@@ -13,20 +23,32 @@ from nexus_knowledge.db.repository import (
     list_feedback,
     update_feedback_status,
 )
-from nexus_knowledge.db.session import get_session_dependency
+from nexus_knowledge.db.session import get_session_dependency, get_session_factory
 from nexus_knowledge.ingestion import ingest_raw_payload
+
+try:
+    from nexus_knowledge.integrations.api import router as integrations_router
+except ModuleNotFoundError:  # pragma: no cover - optional component
+    integrations_router = APIRouter()
+from nexus_knowledge.observability import (
+    CONTENT_TYPE_LATEST,
+    collect_metrics,
+    configure_logging,
+)
+from nexus_knowledge.observability.context import get_correlation_id
+from nexus_knowledge.observability.health import liveness_summary, readiness_summary
+from nexus_knowledge.observability.middleware import RequestContextMiddleware
 from nexus_knowledge.search import hybrid_search
 from nexus_knowledge.search.service import SearchError
 from nexus_knowledge.tasks import (
     analyze_raw_data_task,
+    celery_app,
     export_obsidian_task,
     fuse_correlation_candidates_task,
     generate_correlation_candidates_task,
     normalize_raw_data_task,
     persist_feedback,
 )
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.orm import Session
 
 
 def _resolve_version() -> str:
@@ -38,14 +60,19 @@ def _resolve_version() -> str:
         return "0.1.0"
 
 
+configure_logging()
+
+
+settings = get_settings()
 API_VERSION = _resolve_version()
-API_PREFIX = "/api/v1"
+API_PREFIX = settings.api_root
 
 app = FastAPI(
     title="NexusKnowledge API",
     version=API_VERSION,
     openapi_url=f"{API_PREFIX}/openapi.json",
 )
+app.add_middleware(RequestContextMiddleware)
 api_router = APIRouter(prefix=API_PREFIX)
 
 
@@ -319,6 +346,37 @@ async def get_status() -> StatusResponse:
     return StatusResponse()
 
 
+@api_router.get("/health/live", tags=["System"])
+async def get_liveness() -> dict[str, str]:
+    """Return liveness information for Kubernetes-style probes."""
+    return liveness_summary()
+
+
+@api_router.get("/health/ready", tags=["System"])
+async def get_readiness() -> JSONResponse:
+    """Return readiness information including dependency health."""
+    summary = readiness_summary(
+        session_factory=get_session_factory(),
+        redis_url=settings.redis_url,
+        celery_app=celery_app,
+    )
+    return JSONResponse(
+        content={"status": summary["status"], "checks": summary["checks"]},
+        status_code=summary["http_status"],
+    )
+
+
+@api_router.get("/metrics", tags=["System"])
+async def get_metrics() -> Response:
+    """Expose Prometheus metrics for scraping."""
+    payload = collect_metrics()
+    return Response(
+        content=payload,
+        media_type=CONTENT_TYPE_LATEST,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @api_router.post(
     "/feedback",
     response_model=FeedbackResponse,
@@ -335,6 +393,7 @@ async def submit_feedback(payload: FeedbackRequest) -> FeedbackResponse:
             "message": payload.message,
             "user_id": str(payload.user_id) if payload.user_id else None,
         },
+        correlation_id=get_correlation_id(),
     )
 
     if not task.id:
@@ -440,7 +499,7 @@ async def ingest_payload(
         source_id=payload.source_id,
     )
     session.commit()
-    normalize_raw_data_task.delay(str(raw_data_id))
+    normalize_raw_data_task.delay(str(raw_data_id), correlation_id=get_correlation_id())
     return IngestionResponse(raw_data_id=raw_data_id)
 
 
@@ -486,7 +545,10 @@ async def queue_analysis(
             detail="Raw data must be normalized before analysis",
         )
 
-    analyze_raw_data_task.delay(str(payload.raw_data_id))
+    analyze_raw_data_task.delay(
+        str(payload.raw_data_id),
+        correlation_id=get_correlation_id(),
+    )
     return AnalysisResponse(raw_data_id=payload.raw_data_id)
 
 
@@ -536,7 +598,10 @@ async def queue_correlation(
             detail="Analysis must complete before correlation",
         )
 
-    generate_correlation_candidates_task.delay(str(payload.raw_data_id))
+    generate_correlation_candidates_task.delay(
+        str(payload.raw_data_id),
+        correlation_id=get_correlation_id(),
+    )
     return CorrelationQueuedResponse(raw_data_id=payload.raw_data_id)
 
 
@@ -547,6 +612,13 @@ async def queue_correlation(
 )
 async def list_correlation(
     raw_data_id: uuid.UUID,
+    status_filter: str | None = Query(
+        None,
+        alias="status",
+        description="Optional status filter (e.g. PENDING, CONFIRMED).",
+    ),
+    limit: int = Query(100, ge=1, le=500),
+    *,
     session: SessionDependency,
 ) -> list[CorrelationCandidateResponse]:
     """Return generated correlation candidates for the given payload."""
@@ -557,7 +629,12 @@ async def list_correlation(
             detail="Correlation target not found",
         )
 
-    candidates = list_correlation_candidates(session, raw_data_id)
+    candidates = list_correlation_candidates(
+        session,
+        raw_data_id,
+        status=status_filter,
+        limit=limit,
+    )
     return [
         CorrelationCandidateResponse(
             id=candidate.id,
@@ -595,7 +672,10 @@ async def fuse_correlation(
             detail="Correlation candidates must be generated first",
         )
 
-    fuse_correlation_candidates_task.delay(str(raw_data_id))
+    fuse_correlation_candidates_task.delay(
+        str(raw_data_id),
+        correlation_id=get_correlation_id(),
+    )
     return CorrelationFusionResponse(raw_data_id=raw_data_id)
 
 
@@ -651,11 +731,16 @@ async def queue_obsidian_export(
             detail="Ingestion not found",
         )
 
-    export_obsidian_task.delay(str(payload.raw_data_id), payload.export_path)
+    export_obsidian_task.delay(
+        str(payload.raw_data_id),
+        payload.export_path,
+        correlation_id=get_correlation_id(),
+    )
     return ObsidianExportResponse(raw_data_id=payload.raw_data_id)
 
 
 app.include_router(api_router)
+app.include_router(integrations_router)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

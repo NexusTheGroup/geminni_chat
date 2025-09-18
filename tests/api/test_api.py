@@ -4,6 +4,7 @@ import importlib
 import uuid
 
 from fastapi.testclient import TestClient
+
 from nexus_knowledge.analysis import run_analysis_for_raw_data
 from nexus_knowledge.db import repository
 from nexus_knowledge.db.session import reset_session_factory
@@ -34,9 +35,12 @@ def test_feedback_submission_enqueues_task(sqlite_db, monkeypatch) -> None:
         def __init__(self):
             self.id = "task-123"
 
-    def fake_delay(feedback_id: str, payload: dict) -> DummyResult:
-        calls["feedback_id"] = feedback_id
-        calls["payload"] = payload
+    def fake_delay(*args, **kwargs) -> DummyResult:
+        calls["args"] = args
+        calls["kwargs"] = kwargs
+        if len(args) >= 2:
+            calls["feedback_id"] = args[0]
+            calls["payload"] = args[1]
         return DummyResult()
 
     monkeypatch.setattr(module.persist_feedback, "delay", fake_delay)
@@ -85,17 +89,22 @@ def test_feedback_listing_and_status_update(sqlite_db, monkeypatch) -> None:
     class DummyResult:
         id = "task"
 
-    def fake_delay(feedback_id: str, payload: dict[str, str]) -> DummyResult:
-        with session_factory.begin() as session:
-            repository.create_user_feedback(
-                session,
-                feedback_id=uuid.UUID(feedback_id),
-                feedback_type=payload["feedback_type"],
-                message=payload["message"],
-                user_id=(
-                    uuid.UUID(payload["user_id"]) if payload.get("user_id") else None
-                ),
-            )
+    def fake_delay(*args, **kwargs) -> DummyResult:
+        if len(args) >= 2:
+            feedback_id = args[0]
+            payload = args[1]
+            with session_factory.begin() as session:
+                repository.create_user_feedback(
+                    session,
+                    feedback_id=uuid.UUID(feedback_id),
+                    feedback_type=payload["feedback_type"],
+                    message=payload["message"],
+                    user_id=(
+                        uuid.UUID(payload["user_id"])
+                        if payload.get("user_id")
+                        else None
+                    ),
+                )
         return DummyResult()
 
     monkeypatch.setattr(module.persist_feedback, "delay", fake_delay)
@@ -136,8 +145,9 @@ def test_ingestion_endpoint_triggers_normalization(sqlite_db, monkeypatch) -> No
         def __init__(self):
             self.id = "normalize-task-1"
 
-    def fake_delay(raw_data_id: str) -> DummyResult:
-        captured["raw_data_id"] = raw_data_id
+    def fake_delay(*args, **kwargs) -> DummyResult:
+        if len(args) >= 1:
+            captured["raw_data_id"] = args[0]
         return DummyResult()
 
     monkeypatch.setattr(module.normalize_raw_data_task, "delay", fake_delay)
@@ -171,7 +181,11 @@ def test_ingestion_status_endpoint(sqlite_db, monkeypatch) -> None:
     module = importlib.import_module("nexus_knowledge.api.main")
     module = importlib.reload(module)
 
-    monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
+    monkeypatch.setattr(
+        module.normalize_raw_data_task,
+        "delay",
+        lambda *args, **kwargs: None,
+    )
 
     client = TestClient(module.app)
     payload = {
@@ -206,12 +220,20 @@ def test_analysis_endpoint_monkeypatched(sqlite_db, monkeypatch) -> None:
     module = importlib.import_module("nexus_knowledge.api.main")
     module = importlib.reload(module)
 
-    monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
-    monkeypatch.setattr(module.analyze_raw_data_task, "delay", lambda raw_id: None)
+    monkeypatch.setattr(
+        module.normalize_raw_data_task,
+        "delay",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        module.analyze_raw_data_task,
+        "delay",
+        lambda *args, **kwargs: None,
+    )
     monkeypatch.setattr(
         module.generate_correlation_candidates_task,
         "delay",
-        lambda raw_id: None,
+        lambda *args, **kwargs: None,
     )
 
     client = TestClient(module.app)
@@ -255,12 +277,16 @@ def test_analysis_status_endpoint(sqlite_db, monkeypatch, tmp_path) -> None:
     module = importlib.import_module("nexus_knowledge.api.main")
     module = importlib.reload(module)
 
-    monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
+    monkeypatch.setattr(
+        module.normalize_raw_data_task,
+        "delay",
+        lambda *args, **kwargs: None,
+    )
     monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
     monkeypatch.setattr(
         module.generate_correlation_candidates_task,
         "delay",
-        lambda raw_id: None,
+        lambda *args, **kwargs: None,
     )
     client = TestClient(module.app)
 
@@ -297,17 +323,25 @@ def test_correlation_endpoints(sqlite_db, monkeypatch, tmp_path) -> None:
     module = importlib.import_module("nexus_knowledge.api.main")
     module = importlib.reload(module)
 
-    monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
-    monkeypatch.setattr(module.analyze_raw_data_task, "delay", lambda raw_id: None)
+    monkeypatch.setattr(
+        module.normalize_raw_data_task,
+        "delay",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        module.analyze_raw_data_task,
+        "delay",
+        lambda *args, **kwargs: None,
+    )
     monkeypatch.setattr(
         module.generate_correlation_candidates_task,
         "delay",
-        lambda raw_id: None,
+        lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
         module.fuse_correlation_candidates_task,
         "delay",
-        lambda raw_id: None,
+        lambda *args, **kwargs: None,
     )
     monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
 
@@ -345,7 +379,10 @@ def test_correlation_endpoints(sqlite_db, monkeypatch, tmp_path) -> None:
     assert response.status_code == 202
 
     # Materialize candidates for GET endpoint
-    module.generate_correlation_candidates_task(str(raw_data_id))
+    module.generate_correlation_candidates_task.apply(
+        args=(str(raw_data_id),),
+        kwargs={"correlation_id": None},
+    ).get()
 
     # Monkeypatch to no-op for GET (should already exist)
     candidates_resp = client.get(f"/api/v1/correlation/{raw_data_id}")
@@ -363,7 +400,11 @@ def test_search_endpoint(sqlite_db, tmp_path, monkeypatch) -> None:
     module = importlib.import_module("nexus_knowledge.api.main")
     module = importlib.reload(module)
 
-    monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
+    monkeypatch.setattr(
+        module.normalize_raw_data_task,
+        "delay",
+        lambda *args, **kwargs: None,
+    )
     client = TestClient(module.app)
 
     payload = {
@@ -407,7 +448,7 @@ def test_obsidian_export_endpoint(sqlite_db, tmp_path, monkeypatch) -> None:
     calls = []
     monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
 
-    def fake_delay(raw_id: str, path: str):
+    def fake_delay(raw_id: str, path: str, **kwargs):
         calls.append((raw_id, path))
 
     monkeypatch.setattr(module.export_obsidian_task, "delay", fake_delay, raising=False)

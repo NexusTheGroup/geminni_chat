@@ -45,7 +45,17 @@ echo 'export GITHUB*USERNAME="your_github_username"' >> ~/.bashrc
 echo 'export GITHUB_PAT_KEY="github_pat*...\_with_read_packages_scope"' >> ~/.bashrc
 echo 'export XAI_API_KEY="your_grok_api_key"' >> ~/.bashrc
 echo 'export DEEPSEEK_API_KEY="your_deepseek_api_key"' >> ~/.bashrc
+echo 'export CELERY_WORKER_CONCURRENCY=2' >> ~/.bashrc # defaults are tuned for single-user workloads
+echo 'export CELERY_PREFETCH_MULTIPLIER=1' >> ~/.bashrc
 source ~/.bashrc
+
+Configuration Loader (optional but recommended):
+
+```bash
+cp .env.example .env          # customise values as needed
+scripts/config/validate.py    # ensure settings pass validation
+scripts/config/migrate.py     # compare against documented schema
+```
 
 Authenticate Docker: In the terminal, run the one-time Docker login command:
 
@@ -137,17 +147,71 @@ curl -X POST http://localhost:8000/api/v1/correlation \
 curl http://localhost:8000/api/v1/correlation/<rawDataId>
 ````
 
+## Observability Quick Checks
+
+Run these commands after the stack is up to validate the Phase P8 observability features (see `docs/observability_runbook.md` for full guidance):
+
+```bash
+# Liveness and readiness endpoints
+curl http://localhost:8000/api/v1/health/live | jq
+curl http://localhost:8000/api/v1/health/ready | jq
+
+# Metrics endpoint (Prometheus exposition format)
+curl http://localhost:8000/api/v1/metrics | grep nexus_api_requests_total
+
+# Structured log sample with a custom request identifier
+curl -H "X-Request-ID: demo-req" http://localhost:8000/api/v1/status
+```
+
+## Operations Scripts
+
+```bash
+scripts/db/migrate.py             # run Alembic migrations
+scripts/db/seed.py --normalize    # load sample data and normalise
+scripts/worker/control.py ping    # ping Celery workers
+scripts/logs/tail.py app.log -f   # tail logs (example file path)
+scripts/health/check.py           # hit liveness/readiness endpoints
+```
+
+# Single-User Benchmark
+
+Run the lightweight baseline benchmark after seeding sample data to track ingestion/normalization/search timings. Thresholds are defined in `src/nexus_knowledge/performance/__init__.py`.
+
+```bash
+scripts/benchmarks/run_single_user_benchmark.py --iterations 5
+```
+
+Use `--include-analysis --mlflow-dir ./tmp/mlruns` to measure the optional analysis stage once MLflow is configured.
+
 Run a hybrid search across stored conversation turns:
 
 ```bash
 curl "http://localhost:8000/api/v1/search?q=hybrid+search&limit=5"
 ```
 
-Run the automated test suite from your activated virtual environment:
+## Running Tests Locally
+
+The project is configured to run tests without external services (Redis, Celery workers) using mocking and file-based MLflow.
+
+### Quick Start
 
 ```bash
-./.venv/bin/pytest
+# Using the test harness (recommended)
+scripts/test/local.sh
+
+# Or directly with pytest
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest
+
+# Run specific test modules
+scripts/test/local.sh tests/ingestion/test_service.py tests/export/test_obsidian.py
 ```
+
+### Test Configuration
+
+- **Environment**: Tests automatically set up SQLite database, file-based MLflow, and mock Celery tasks
+- **No Dependencies**: No Redis, Celery workers, or MLflow server required
+- **Isolated**: Each test uses temporary databases and clean environments
+- **Fast**: Full test suite runs in under 30 seconds
 
 Launch the modern React frontend at <http://localhost:3000/> for the full user experience, or the lightweight UI at <http://localhost:8000/> for basic functionality.
 
@@ -193,3 +257,291 @@ Clean Up: Delete test.txt.
 
 Step 5: Kickoff
 The GPT Orchestrator (via Codex) is now fully prepared. Provide it with the "Final Kickoff Prompt" from `prompts.md`.
+
+## P8 Production Readiness Testing Framework
+
+The NexusKnowledge system includes a comprehensive P8 testing framework for production readiness and deployment validation, designed using DeepThink AI reasoning for enterprise-grade quality assurance.
+
+### P8 Testing Overview
+
+**P8: Production Readiness & Deployment Testing** provides comprehensive testing automation for all production readiness components:
+
+- **P8.1: Container Orchestration Testing** - Kubernetes manifests, Helm charts, service mesh
+- **P8.2: Security Hardening Testing** - OAuth2/JWT, encryption, network policies
+- **P8.3: Monitoring Stack Testing** - Prometheus, Grafana, ELK stack
+- **P8.4: Backup & Disaster Recovery Testing** - Automated backups, point-in-time recovery
+- **P8.5: SSL/TLS Management Testing** - Certificate validation, TLS 1.3, security headers
+- **P8.6: Production Deployment Testing** - CI/CD pipeline, ArgoCD GitOps, rollback automation
+
+### P8 Testing Scripts
+
+**Location**: `scripts/README_P8_TESTING.md`
+
+#### Core Testing Scripts
+
+```bash
+# Generate P8 testing plans
+python3 scripts/delegate-p8-testing.py
+python3 scripts/master-testing-generator.py
+
+# Execute P8 sub-phase delegations
+python3 scripts/delegate-p8-1-architecture.py
+python3 scripts/delegate-p8-2-security.py
+python3 scripts/delegate-p8-3-monitoring.py
+python3 scripts/delegate-p8-4-backup.py
+python3 scripts/delegate-p8-5-ssl.py
+python3 scripts/delegate-p8-6-deployment.py
+
+# Integrate P8 results
+python3 scripts/integrate-p8-1-results.py
+python3 scripts/integrate-p8-2-security.py
+python3 scripts/integrate-p8-3-monitoring.py
+python3 scripts/integrate-p8-4-backup.py
+python3 scripts/integrate-p8-5-ssl.py
+python3 scripts/integrate-p8-6-deployment.py
+```
+
+#### P8 Testing Execution
+
+```bash
+# Execute P8 testing
+bash scripts/execute-p8-1-delegation.sh
+bash scripts/k8s-deploy.sh
+bash scripts/security-scan.sh
+bash scripts/load-testing.sh
+```
+
+### P8 Testing Documentation
+
+**Testing Plans**:
+
+- `docs/P8_TESTING_PLAN_*.md` - Comprehensive testing plans
+- `docs/P8_PRODUCTION_READINESS_&_DEPLOYMENT_TESTING_PLAN_*.md` - Enterprise testing framework
+- `docs/P8_PRODUCTION_TESTING_PLAN_*.md` - Production testing plans
+
+**Testing Scripts**:
+
+- `docs/P8_TESTING_SCRIPTS_*.md` - Testing automation scripts
+- `scripts/README_P8_TESTING.md` - P8 testing scripts documentation
+
+**Completion Summaries**:
+
+- `docs/P8_FINAL_COMPLETION_SUMMARY.md` - P8 phase completion
+- `docs/P8_*_COMPLETION_SUMMARY.md` - Individual sub-phase completions
+
+## P9 Performance Optimization Testing Framework
+
+The NexusKnowledge system includes a comprehensive P9 testing framework for performance optimization and scaling validation, designed using DeepThink AI reasoning for enterprise-grade performance testing.
+
+### P9 Testing Overview
+
+**P9: Performance Optimization & Scaling Testing** provides comprehensive testing automation for all performance optimization components:
+
+- **P9.1: Database Optimization Testing** - Query performance, indexing, partitioning
+- **P9.2: Redis Caching Testing** - Cache hit ratios, invalidation, cluster testing
+- **P9.3: Connection Pooling Testing** - Pool efficiency, resource management
+- **P9.4: Load Testing & Performance Benchmarking** - API response times, throughput
+- **P9.5: Auto-scaling Testing** - HPA/VPA scaling, cluster autoscaler
+- **P9.6: CDN Integration Testing** - Asset optimization, global latency
+
+### P9 Testing Scripts
+
+**Location**: `scripts/README_P9_TESTING.md`
+
+#### Core Testing Scripts
+
+```bash
+# Generate P9 testing plans
+python3 scripts/delegate-p9-testing.py
+python3 scripts/comprehensive-performance-testing.py
+
+# Execute P9 sub-phase delegations
+python3 scripts/delegate-p9-1-database-optimization.py
+python3 scripts/delegate-p9-2-redis-caching.py
+python3 scripts/delegate-p9-3-connection-pooling.py
+python3 scripts/delegate-p9-4-load-testing.py
+python3 scripts/delegate-p9-5-autoscaling.py
+python3 scripts/delegate-p9-6-cdn-integration.py
+```
+
+#### P9 Performance Testing Execution
+
+```bash
+# Execute P9 performance testing
+bash scripts/load-testing.sh
+python3 scripts/comprehensive-performance-testing.py
+```
+
+### P9 Testing Documentation
+
+**Testing Plans**:
+
+- `docs/P9_PERFORMANCE_OPTIMIZATION_TESTING_PLAN_*.md` - Comprehensive testing plans
+- `docs/COMPREHENSIVE_PERFORMANCE_TESTING_PLAN_*.md` - Enterprise performance testing
+- `docs/P9_TESTING_SCRIPTS_*.md` - Testing automation scripts
+
+**Testing Scripts**:
+
+- `scripts/README_P9_TESTING.md` - P9 testing scripts documentation
+- `scripts/comprehensive-performance-testing.py` - Performance testing suite
+
+**Completion Summaries**:
+
+- `P9_AI_HANDOFF.md` - P9 phase completion
+- `docs/P9_*_COMPLETION_SUMMARY.md` - Individual sub-phase completions
+
+## Comprehensive Testing Framework (Phases P8-P14)
+
+The NexusKnowledge system includes comprehensive testing frameworks for all production phases (P8-P14), designed using DeepThink AI reasoning for enterprise-grade quality assurance.
+
+### Testing Overview
+
+Our testing framework covers seven critical phases:
+
+- **P8: Production Readiness & Deployment** - Container orchestration, security hardening, monitoring, backup systems
+- **P9: Performance Optimization & Scaling** - Database optimization, caching, load testing, auto-scaling
+- **P10: Advanced AI & ML Features** - LLM integration, vector search, topic modeling, NER, predictive analytics
+- **P11: Integration & Interoperability** - API integrations, webhooks, real-time sync, format support
+- **P12: User Experience & Accessibility** - Interactive visualizations, collaboration, mobile app, accessibility
+- **P13: Enterprise Features** - Multi-user management, RBAC, SSO, audit logging, compliance
+- **P14: Maintenance & Support** - Automated maintenance, documentation, support systems, health monitoring
+
+### Master Testing Script
+
+Use the master testing script to generate comprehensive testing plans for all phases:
+
+```bash
+# Generate all testing plans in parallel
+python3 scripts/master-testing-generator.py
+
+# Generate individual phase testing plans
+python3 scripts/delegate-p8-testing.py   # Production Readiness
+python3 scripts/delegate-p9-testing.py   # Performance Optimization
+python3 scripts/delegate-p10-testing.py  # AI/ML Features
+python3 scripts/delegate-p11-testing.py  # Integration & Interoperability
+python3 scripts/delegate-p12-testing.py  # User Experience & Accessibility
+python3 scripts/delegate-p13-testing.py  # Enterprise Features
+python3 scripts/delegate-p14-testing.py  # Maintenance & Support
+```
+
+### Testing Configuration
+
+The testing framework uses JSON configuration for flexibility:
+
+```json
+{
+  "phases": {
+    "P8": {
+      "name": "Production Readiness & Deployment",
+      "focus_areas": [
+        "Kubernetes manifests testing",
+        "Security hardening validation",
+        "Monitoring stack testing",
+        "Backup & disaster recovery testing",
+        "SSL/TLS configuration testing",
+        "CI/CD pipeline testing"
+      ]
+    }
+  },
+  "global_settings": {
+    "max_tokens": 6000,
+    "temperature": 0.1,
+    "parallel_execution": true,
+    "max_workers": 7
+  }
+}
+```
+
+### Generated Testing Documentation
+
+The testing framework generates comprehensive documentation in `docs/`:
+
+#### Testing Plans
+
+- `P8_PRODUCTION_READINESS_&_DEPLOYMENT_TESTING_PLAN_*.md`
+- `P9_PERFORMANCE_OPTIMIZATION_TESTING_PLAN_*.md`
+- `P10_ADVANCED_AI_&_ML_FEATURES_TESTING_PLAN_*.md`
+- `P11_INTEGRATION_&_INTEROPERABILITY_TESTING_PLAN_*.md`
+- `P12_USER_EXPERIENCE_&_ACCESSIBILITY_TESTING_PLAN_*.md`
+- `P13_ENTERPRISE_FEATURES_TESTING_PLAN_*.md`
+- `P14_MAINTENANCE_&_SUPPORT_TESTING_PLAN_*.md`
+
+#### Testing Scripts
+
+- `P8_TESTING_SCRIPTS_*.md` - Production readiness testing automation
+- `P9_TESTING_SCRIPTS_*.md` - Performance testing automation
+- `P10_TESTING_SCRIPTS_*.md` - AI/ML testing automation
+- `P11_TESTING_SCRIPTS_*.md` - Integration testing automation
+- `P12_TESTING_SCRIPTS_*.md` - UX/Accessibility testing automation
+- `P13_TESTING_SCRIPTS_*.md` - Enterprise features testing automation
+- `P14_TESTING_SCRIPTS_*.md` - Maintenance & support testing automation
+
+### Testing Categories
+
+Each phase includes comprehensive testing across multiple categories:
+
+1. **Unit Testing** - Individual component testing
+2. **Integration Testing** - Component interaction testing
+3. **Performance Testing** - Performance and scalability validation
+4. **Security Testing** - Security requirements validation
+5. **User Interface Testing** - UI/UX testing (where applicable)
+6. **API Testing** - API endpoint testing
+7. **Database Testing** - Database operations testing
+8. **End-to-End Testing** - Complete workflow testing
+
+### Quality Assurance Framework
+
+The testing framework ensures:
+
+- **Enterprise-Grade Quality** - Production-ready testing standards
+- **Comprehensive Coverage** - All system components tested
+- **Performance Validation** - Performance criteria verification
+- **Security Compliance** - Security requirements validation
+- **Accessibility Standards** - WCAG 2.1 AAA compliance
+- **Documentation Quality** - Complete testing documentation
+- **Automation** - Automated testing scripts and tools
+- **Monitoring** - Testing monitoring and reporting
+
+### Testing Execution
+
+1. **Review Testing Plans** - Review generated testing documentation
+2. **Implement Testing Scripts** - Implement automated testing scripts
+3. **Execute Testing Procedures** - Run comprehensive testing
+4. **Monitor Quality Metrics** - Track quality and performance metrics
+5. **Continuous Improvement** - Iterate and improve testing processes
+
+### Testing Tools Integration
+
+The framework integrates with industry-standard testing tools:
+
+- **Python Testing** - pytest, unittest, pytest-cov
+- **JavaScript Testing** - Jest, Cypress, Playwright
+- **Performance Testing** - Locust, JMeter, k6
+- **Security Testing** - Bandit, Safety, OWASP ZAP
+- **API Testing** - Postman, Newman, HTTPie
+- **Database Testing** - SQLAlchemy testing, pytest-postgresql
+- **Container Testing** - Docker testing, Kubernetes testing
+- **Monitoring Testing** - Prometheus testing, Grafana validation
+
+### Quality Gates
+
+Each phase must meet specific quality criteria:
+
+- **Code Quality Score** ≥ 85/100 (per CODE_QUALITY_FRAMEWORK.md)
+- **Test Coverage** ≥ 80%
+- **Performance Targets** - Phase-specific performance criteria
+- **Security Compliance** - No critical vulnerabilities
+- **Accessibility Compliance** - WCAG 2.1 AAA where applicable
+- **Documentation Completeness** - 100% documentation coverage
+
+### Continuous Testing
+
+The testing framework supports continuous testing through:
+
+- **CI/CD Integration** - Automated testing in deployment pipelines
+- **Parallel Execution** - Multi-threaded testing execution
+- **Real-time Monitoring** - Continuous quality monitoring
+- **Automated Reporting** - Automated test result reporting
+- **Quality Dashboards** - Real-time quality dashboards
+
+For detailed testing procedures and implementation guidance, refer to the generated testing documentation in the `docs/` directory.
