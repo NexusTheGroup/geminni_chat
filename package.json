@@ -6,6 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Gemini AI Agent",
+  "author": "GPT Orchestrator (via Codex)",
   "license": "UNLICENSED"
 }

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mlflow:
@@ -15,5 +15,52 @@ services:
       - "5000:5000"
     volumes:
       - ./mlflow_data:/mlflow_data
-    working_dir: /mlflow_data
+  db:
+    image: postgres:16-alpine
+    container_name: nexus-db
+    restart: always # Added
+    environment:
+      POSTGRES_DB: nexus_knowledge
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+      - ./docs/DB_SCHEMA.sql:/docker-entrypoint-initdb.d/init.sql # Added
+  redis:
+    image: redis:alpine
+    container_name: nexus-redis
+    ports:
+      - "6379:6379"
+  app:
+    build: .
+    container_name: nexus-app
+    command: >
+      bash -lc "python scripts/run_migrations.py && uvicorn nexus_knowledge.api.main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://user:password@db:5432/nexus_knowledge
+      REDIS_URL: redis://redis:6379/0
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+  worker:
+    build: .
+    container_name: nexus-worker
+    command: celery -A nexus_knowledge.tasks worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://user:password@db:5432/nexus_knowledge
+      REDIS_URL: redis://redis:6379/0
 
+volumes: # Added
+  db_data: # Added

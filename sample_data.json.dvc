@@ -1,0 +1,5 @@
+outs:
+- md5: d30b654ffea56ee28d177e2fd5e31436
+  size: 1294
+  hash: md5
+  path: sample_data.json
