@@ -1,0 +1,9 @@
+stages:
+  prepare_sample:
+    cmd: python scripts/dvc/prepare_sample_dataset.py --input sample_data.json 
+      --output data/processed/sample_data.json
+    deps:
+    - sample_data.json
+    - scripts/dvc/prepare_sample_dataset.py
+    outs:
+    - data/processed/sample_data.json
