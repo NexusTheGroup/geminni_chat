@@ -1,7 +1,5 @@
 """Celery task definitions with observability instrumentation."""
 
-# ruff: noqa: PLR0913
-
 from __future__ import annotations
 
 import logging
@@ -10,6 +8,7 @@ from typing import Any
 
 import mlflow
 from celery import Celery
+
 from nexus_knowledge.analysis.pipeline import run_analysis_for_raw_data
 from nexus_knowledge.config import get_settings
 from nexus_knowledge.correlation import generate_candidates_for_raw
@@ -81,19 +80,16 @@ def persist_feedback(
         extra={"task_name": task_name, "task_id": task_id, "feedback_id": feedback_id},
     )
     try:
-        with track_task_execution(task_name):
-            with session_scope() as session:
-                create_user_feedback(
-                    session,
-                    feedback_id=uuid.UUID(feedback_id),
-                    feedback_type=payload["feedback_type"],
-                    message=payload["message"],
-                    user_id=(
-                        uuid.UUID(payload["user_id"])
-                        if payload.get("user_id")
-                        else None
-                    ),
-                )
+        with track_task_execution(task_name), session_scope() as session:
+            create_user_feedback(
+                session,
+                feedback_id=uuid.UUID(feedback_id),
+                feedback_type=payload["feedback_type"],
+                message=payload["message"],
+                user_id=(
+                    uuid.UUID(payload["user_id"]) if payload.get("user_id") else None
+                ),
+            )
     except Exception:
         logger.exception(
             "task.failed",
@@ -126,15 +122,17 @@ def normalize_raw_data_task(
     )
     try:
         raw_uuid = uuid.UUID(raw_data_id)
-        with track_task_execution(task_name):
-            with mlflow_task_run(
+        with (
+            track_task_execution(task_name),
+            mlflow_task_run(
                 task_name,
                 raw_data_id=raw_uuid,
                 correlation_id=correlation_id,
-            ):
-                with session_scope() as session:
-                    processed = normalize_raw_data(session, raw_uuid)
-                mlflow.log_metric("turns_normalized", processed)
+            ),
+        ):
+            with session_scope() as session:
+                processed = normalize_raw_data(session, raw_uuid)
+            mlflow.log_metric("turns_normalized", processed)
     except Exception:
         logger.exception(
             "task.failed",
@@ -167,16 +165,18 @@ def analyze_raw_data_task(
     )
     try:
         raw_uuid = uuid.UUID(raw_data_id)
-        with track_task_execution(task_name):
-            with mlflow_task_run(
+        with (
+            track_task_execution(task_name),
+            mlflow_task_run(
                 task_name,
                 raw_data_id=raw_uuid,
                 correlation_id=correlation_id,
                 params={"pipeline": "heuristic_sentiment"},
-            ):
-                with session_scope() as session:
-                    processed = run_analysis_for_raw_data(session, raw_uuid)
-                mlflow.log_metric("turns_analyzed", processed)
+            ),
+        ):
+            with session_scope() as session:
+                processed = run_analysis_for_raw_data(session, raw_uuid)
+            mlflow.log_metric("turns_analyzed", processed)
     except Exception:
         logger.exception(
             "task.failed",
@@ -211,16 +211,18 @@ def generate_correlation_candidates_task(
     )
     try:
         raw_uuid = uuid.UUID(raw_data_id)
-        with track_task_execution(task_name):
-            with mlflow_task_run(
+        with (
+            track_task_execution(task_name),
+            mlflow_task_run(
                 task_name,
                 raw_data_id=raw_uuid,
                 correlation_id=correlation_id,
                 params={"pipeline": "correlation_generation"},
-            ):
-                with session_scope() as session:
-                    generated = generate_candidates_for_raw(session, raw_uuid)
-                mlflow.log_metric("candidates_generated", generated)
+            ),
+        ):
+            with session_scope() as session:
+                generated = generate_candidates_for_raw(session, raw_uuid)
+            mlflow.log_metric("candidates_generated", generated)
     except Exception:
         logger.exception(
             "task.failed",
@@ -253,17 +255,19 @@ def fuse_correlation_candidates_task(
     )
     try:
         raw_uuid = uuid.UUID(raw_data_id)
-        with track_task_execution(task_name):
-            with mlflow_task_run(
+        with (
+            track_task_execution(task_name),
+            mlflow_task_run(
                 task_name,
                 raw_data_id=raw_uuid,
                 correlation_id=correlation_id,
                 params={"pipeline": "correlation_fusion"},
-            ):
-                with session_scope() as session:
-                    result = fuse_candidates_for_raw(session, raw_uuid)
-                for key, value in result.items():
-                    mlflow.log_metric(f"relationships_{key}", value)
+            ),
+        ):
+            with session_scope() as session:
+                result = fuse_candidates_for_raw(session, raw_uuid)
+            for key, value in result.items():
+                mlflow.log_metric(f"relationships_{key}", value)
     except Exception:
         logger.exception(
             "task.failed",
@@ -302,18 +306,20 @@ def export_obsidian_task(
     )
     try:
         raw_uuid = uuid.UUID(raw_data_id)
-        with track_task_execution(task_name):
-            with mlflow_task_run(
+        with (
+            track_task_execution(task_name),
+            mlflow_task_run(
                 task_name,
                 raw_data_id=raw_uuid,
                 correlation_id=correlation_id,
                 params={"export_path": export_path},
-            ):
-                with session_scope() as session:
-                    exported_files = export_to_obsidian(session, raw_uuid, export_path)
-                for exported in exported_files:
-                    log_task_artifact(exported)
-                mlflow.log_metric("files_exported", len(exported_files))
+            ),
+        ):
+            with session_scope() as session:
+                exported_files = export_to_obsidian(session, raw_uuid, export_path)
+            for exported in exported_files:
+                log_task_artifact(exported)
+            mlflow.log_metric("files_exported", len(exported_files))
     except Exception:
         logger.exception(
             "task.failed",
@@ -331,13 +337,11 @@ def export_obsidian_task(
 
 
 __all__ = [
-    "REDIS_URL",
-    "celery_app",
-    "long_running_api_call",
-    "persist_feedback",
-    "normalize_raw_data_task",
     "analyze_raw_data_task",
-    "generate_correlation_candidates_task",
-    "fuse_correlation_candidates_task",
+    "celery_app",
     "export_obsidian_task",
+    "fuse_correlation_candidates_task",
+    "generate_correlation_candidates_task",
+    "normalize_raw_data_task",
+    "persist_feedback",
 ]

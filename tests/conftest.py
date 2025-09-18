@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-import os
 import logging
+import os
 from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from nexus_knowledge.config import clear_settings_cache
-from nexus_knowledge.db.session import reset_session_factory
+from alembic.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from alembic import command
-from alembic.config import Config
+from nexus_knowledge.config import clear_settings_cache
+from nexus_knowledge.db.session import reset_session_factory
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -101,8 +101,7 @@ def mock_celery_tasks(request, monkeypatch):
                 and not decorator_kwargs
             ):
                 return wrapper(decorator_args[0])
-            else:
-                return wrapper
+            return wrapper
 
         mock_app.task = mock_task_decorator
         return mock_app
@@ -214,7 +213,7 @@ def clean_mlflow_context():
         logging.error(f"Error ending mlflow run: {e}")
 
 
-@pytest.fixture()
+@pytest.fixture
 def sqlite_db(
     tmp_path,
     monkeypatch,

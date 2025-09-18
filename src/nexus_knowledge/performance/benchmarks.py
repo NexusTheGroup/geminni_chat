@@ -7,12 +7,13 @@ import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 
+from sqlalchemy.orm import Session, sessionmaker
+
 from nexus_knowledge.analysis.pipeline import run_analysis_for_raw_data
 from nexus_knowledge.ingestion import ingest_raw_payload
 from nexus_knowledge.ingestion.service import normalize_raw_data
 from nexus_knowledge.performance import default_benchmark_thresholds
 from nexus_knowledge.search import hybrid_search
-from sqlalchemy.orm import Session, sessionmaker
 
 
 @dataclass

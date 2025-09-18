@@ -7,6 +7,7 @@ import argparse
 import sys
 
 import httpx
+
 from nexus_knowledge.config import get_settings
 
 

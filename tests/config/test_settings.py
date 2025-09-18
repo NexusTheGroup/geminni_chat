@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+
 from nexus_knowledge.config import (
     ConfigurationError,
     clear_settings_cache,

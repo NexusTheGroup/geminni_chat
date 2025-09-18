@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import subprocess
 import sys
@@ -13,10 +14,8 @@ def _cleanup_artifact() -> None:
     if DATA_ARTIFACT.exists():
         DATA_ARTIFACT.unlink()
     parent = DATA_ARTIFACT.parent
-    try:
+    with contextlib.suppress(OSError):
         parent.rmdir()
-    except OSError:
-        pass
 
 
 def test_dvc_repro_pipeline_creates_artifact() -> None:

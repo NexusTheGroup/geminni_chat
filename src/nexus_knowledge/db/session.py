@@ -5,10 +5,11 @@ from __future__ import annotations
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from nexus_knowledge.config import get_settings, reload_settings
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+
+from nexus_knowledge.config import get_settings, reload_settings
 
 _ENGINE: Engine | None = None
 _SESSION_FACTORY: sessionmaker[Session] | None = None

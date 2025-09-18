@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeAlias
 
+from sqlalchemy.orm import Session
+
 from nexus_knowledge.db.models import ConversationTurn
 from nexus_knowledge.db.repository import (
     create_conversation_turns,
@@ -19,7 +21,6 @@ from nexus_knowledge.db.repository import (
     get_raw_data_by_hash,
     update_raw_data_status,
 )
-from sqlalchemy.orm import Session
 
 JSONPrimitive = str | int | float | bool | None
 JSONValue: TypeAlias = JSONPrimitive | dict[str, "JSONValue"] | list["JSONValue"]

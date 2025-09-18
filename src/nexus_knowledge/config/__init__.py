@@ -9,9 +9,9 @@ from .settings import (
 )
 
 __all__ = [
-    "Settings",
     "ConfigurationError",
+    "Settings",
+    "clear_settings_cache",
     "get_settings",
     "reload_settings",
-    "clear_settings_cache",
 ]

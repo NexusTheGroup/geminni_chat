@@ -86,9 +86,9 @@ def liveness_summary() -> dict[str, Any]:
 
 
 __all__ = [
+    "check_celery",
     "check_database",
     "check_redis",
-    "check_celery",
-    "readiness_summary",
     "liveness_summary",
+    "readiness_summary",
 ]

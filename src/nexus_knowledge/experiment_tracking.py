@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import mlflow
+
 from nexus_knowledge.mlflow_utils import configure_mlflow
 from nexus_knowledge.observability import get_celery_task_id, get_correlation_id
 
@@ -84,4 +85,4 @@ def log_task_artifact(path: str | Path) -> None:
         mlflow.log_artifact(str(path_obj))
 
 
-__all__ = ["mlflow_task_run", "log_task_artifact"]
+__all__ = ["log_task_artifact", "mlflow_task_run"]

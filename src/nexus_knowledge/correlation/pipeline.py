@@ -6,6 +6,8 @@ import itertools
 import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy.orm import Session
+
 from nexus_knowledge.db.models import CorrelationCandidate, Relationship
 from nexus_knowledge.db.repository import (
     create_correlation_candidates,
@@ -18,7 +20,6 @@ from nexus_knowledge.db.repository import (
     update_candidate_status,
     update_raw_data_status,
 )
-from sqlalchemy.orm import Session
 
 
 class CorrelationError(RuntimeError):

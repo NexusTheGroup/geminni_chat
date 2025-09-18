@@ -5,9 +5,9 @@ from __future__ import annotations
 import uuid
 
 import sqlalchemy as sa
-from nexus_knowledge.db.base import GUID, JSONBType
 
 from alembic import op
+from nexus_knowledge.db.base import GUID, JSONBType
 
 # revision identifiers, used by Alembic.
 revision = "20240306_01"

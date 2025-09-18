@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 from nexus_knowledge.db import repository
 from nexus_knowledge.ingestion import (
     IngestionError,
@@ -152,11 +154,8 @@ def test_normalize_handles_invalid_json(sqlite_db) -> None:
             content=invalid_payload,
         )
 
-    with session_factory.begin() as session:
-        try:
-            normalize_raw_data(session, raw_id)
-        except IngestionError:
-            pass
+    with session_factory.begin() as session, contextlib.suppress(IngestionError):
+        normalize_raw_data(session, raw_id)
 
     with session_factory() as session:
         record = repository.get_raw_data(session, raw_id)

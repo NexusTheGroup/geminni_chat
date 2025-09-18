@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 
-@pytest.mark.no_celery_mock()
+@pytest.mark.no_celery_mock
 def test_celery_configuration_defaults(monkeypatch) -> None:
     monkeypatch.setenv("CELERY_WORKER_CONCURRENCY", "3")
     monkeypatch.setenv("CELERY_PREFETCH_MULTIPLIER", "2")

@@ -73,11 +73,11 @@ def pop_celery_context(
 
 
 __all__ = [
-    "get_request_id",
-    "get_correlation_id",
     "get_celery_task_id",
-    "push_request_context",
+    "get_correlation_id",
+    "get_request_id",
+    "pop_celery_context",
     "pop_request_context",
     "push_celery_context",
-    "pop_celery_context",
+    "push_request_context",
 ]

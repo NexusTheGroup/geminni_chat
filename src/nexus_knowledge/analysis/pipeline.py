@@ -6,6 +6,8 @@ import uuid
 from datetime import UTC, datetime
 
 import mlflow
+from sqlalchemy.orm import Session
+
 from nexus_knowledge.analysis.model import HeuristicSentimentModel
 from nexus_knowledge.db.models import Entity
 from nexus_knowledge.db.repository import (
@@ -15,7 +17,6 @@ from nexus_knowledge.db.repository import (
     update_raw_data_status,
 )
 from nexus_knowledge.mlflow_utils import configure_mlflow
-from sqlalchemy.orm import Session
 
 
 class AnalysisError(RuntimeError):

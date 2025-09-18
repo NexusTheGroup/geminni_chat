@@ -2,4 +2,4 @@
 
 from .obsidian import ExportError, export_to_obsidian
 
-__all__ = ["export_to_obsidian", "ExportError"]
+__all__ = ["ExportError", "export_to_obsidian"]

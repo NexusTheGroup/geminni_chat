@@ -12,6 +12,9 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse, JSONResponse, Response
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
+
 from nexus_knowledge.config import get_settings
 from nexus_knowledge.db.repository import (
     get_raw_data,
@@ -22,8 +25,6 @@ from nexus_knowledge.db.repository import (
 )
 from nexus_knowledge.db.session import get_session_dependency, get_session_factory
 from nexus_knowledge.ingestion import ingest_raw_payload
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.orm import Session
 
 try:
     from nexus_knowledge.integrations.api import router as integrations_router

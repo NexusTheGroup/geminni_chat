@@ -4,6 +4,7 @@ import importlib
 import uuid
 
 from fastapi.testclient import TestClient
+
 from nexus_knowledge.analysis import run_analysis_for_raw_data
 from nexus_knowledge.db import repository
 from nexus_knowledge.db.session import reset_session_factory

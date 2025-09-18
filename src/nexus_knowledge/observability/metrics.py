@@ -109,8 +109,8 @@ def collect_metrics() -> bytes:
 __all__ = [
     "CONTENT_TYPE_LATEST",
     "collect_metrics",
-    "observe_api_request",
     "observe_api_error",
-    "track_task_execution",
+    "observe_api_request",
     "observe_task_failure",
+    "track_task_execution",
 ]

@@ -23,7 +23,7 @@ _DEFAULT_SECRET_PLACEHOLDER = os.getenv(
 class ConfigurationError(RuntimeError):
     """Raised when configuration validation fails."""
 
-    def __init__(self, errors: list[str]):
+    def __init__(self, errors: list[str]) -> None:
         self.errors = errors
         super().__init__("; ".join(errors))
 
@@ -158,9 +158,9 @@ def clear_settings_cache() -> None:
 
 
 __all__ = [
-    "Settings",
     "ConfigurationError",
+    "Settings",
+    "clear_settings_cache",
     "get_settings",
     "reload_settings",
-    "clear_settings_cache",
 ]
