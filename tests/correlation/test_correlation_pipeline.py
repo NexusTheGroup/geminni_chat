@@ -78,9 +78,8 @@ def test_generate_candidates_without_entities(sqlite_db) -> None:
     with session_factory.begin() as session:
         normalize_raw_data(session, raw_id)
 
-    with session_factory.begin() as session:
-        with pytest.raises(CorrelationError):
-            generate_candidates_for_raw(session, raw_id)
+    with session_factory.begin() as session, pytest.raises(CorrelationError):
+        generate_candidates_for_raw(session, raw_id)
 
 
 def test_fuse_candidates_for_raw(sqlite_db, tmp_path, monkeypatch) -> None:

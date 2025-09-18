@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and Dependencies Debug MCP Server for NexusKnowledge
+"""Build and Dependencies Debug MCP Server for NexusKnowledge.
 
 This MCP server provides build debugging capabilities for the NexusKnowledge project,
 including dependency analysis, build process monitoring, and deployment debugging.
@@ -40,7 +40,8 @@ def check_dependencies() -> str:
             [sys.executable, "-m", "pip", "list", "--format=json"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if result.returncode != 0:
@@ -103,7 +104,8 @@ def analyze_dependency_conflicts() -> str:
             [sys.executable, "-m", "pip", "check"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         conflicts = []
@@ -117,7 +119,8 @@ def analyze_dependency_conflicts() -> str:
             [sys.executable, "-m", "pip", "list", "--outdated", "--format=json"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         outdated = []
@@ -248,7 +251,8 @@ def check_docker_build() -> str:
                 ["docker", "--version"],
                 capture_output=True,
                 text=True,
-                cwd=PROJECT_ROOT, check=False,
+                cwd=PROJECT_ROOT,
+                check=False,
             )
             docker_results["tests"]["docker_available"] = {
                 "success": docker_version.returncode == 0,
@@ -287,7 +291,8 @@ def check_docker_build() -> str:
                     capture_output=True,
                     text=True,
                     cwd=PROJECT_ROOT,
-                    timeout=30, check=False,
+                    timeout=30,
+                    check=False,
                 )
                 docker_results["tests"]["build_test"] = {
                     "success": build_test.returncode == 0,
@@ -471,7 +476,8 @@ def run_linting_checks() -> str:
                 [sys.executable, "-m", "ruff", "check", "src/", "tests/"],
                 capture_output=True,
                 text=True,
-                cwd=PROJECT_ROOT, check=False,
+                cwd=PROJECT_ROOT,
+                check=False,
             )
             linting_results["checks"]["ruff"] = {
                 "success": ruff_result.returncode == 0,
@@ -488,7 +494,8 @@ def run_linting_checks() -> str:
                 [sys.executable, "-m", "black", "--check", "src/", "tests/"],
                 capture_output=True,
                 text=True,
-                cwd=PROJECT_ROOT, check=False,
+                cwd=PROJECT_ROOT,
+                check=False,
             )
             linting_results["checks"]["black"] = {
                 "success": black_result.returncode == 0,
@@ -539,7 +546,8 @@ def dependencies_resource() -> str:
             [sys.executable, "-m", "pip", "list"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
         return result.stdout if result.returncode == 0 else f"Error: {result.stderr}"
     except Exception as e:

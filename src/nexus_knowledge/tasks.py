@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import uuid
@@ -15,15 +16,16 @@ from nexus_knowledge.ingestion.service import normalize_raw_data
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
 celery_app = Celery("nexus_knowledge_tasks", broker=REDIS_URL, backend=REDIS_URL)
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task
 def long_running_api_call(input_string: str) -> str:
     """Simulate a long-running API call to an AI model."""
-    print(f"[Worker] Starting long_running_api_call with: {input_string}")
+    logger.info("Starting long_running_api_call with: %s", input_string)
     time.sleep(2)  # Simulate network latency without blocking the main thread.
     result = f"Processed '{input_string}' at {time.ctime()}"
-    print(f"[Worker] Finished long_running_api_call: {result}")
+    logger.info("Finished long_running_api_call: %s", result)
     return result
 
 

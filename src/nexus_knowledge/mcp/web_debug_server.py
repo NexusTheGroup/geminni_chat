@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Web Debugging MCP Server for NexusKnowledge
+"""Web Debugging MCP Server for NexusKnowledge.
 
 This MCP server provides web debugging capabilities for the NexusKnowledge project,
 including HTTP request testing, API endpoint debugging, and web error analysis.
@@ -90,7 +90,8 @@ def test_api_endpoint(
 
 @mcp.tool()
 def debug_nexus_api(
-    endpoint: str = "/api/v1/status", base_url: str = "http://localhost:8000",
+    endpoint: str = "/api/v1/status",
+    base_url: str = "http://localhost:8000",
 ) -> str:
     """Debug NexusKnowledge API endpoints with common test cases.
 
@@ -236,7 +237,9 @@ def analyze_http_error(status_code: int, response_body: str, request_url: str) -
 
 @mcp.tool()
 def test_nexus_search_api(
-    query: str = "test query", limit: int = 10, base_url: str = "http://localhost:8000",
+    query: str = "test query",
+    limit: int = 10,
+    base_url: str = "http://localhost:8000",
 ) -> str:
     """Test the NexusKnowledge search API endpoint.
 
@@ -284,7 +287,8 @@ def test_nexus_search_api(
 
 @mcp.tool()
 def monitor_api_health(
-    base_url: str = "http://localhost:8000", endpoints: list[str] | None = None,
+    base_url: str = "http://localhost:8000",
+    endpoints: list[str] | None = None,
 ) -> str:
     """Monitor the health of multiple API endpoints.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Docker MCP Server for NexusKnowledge
+"""Docker MCP Server for NexusKnowledge.
 
 This MCP server provides real-time Docker monitoring and troubleshooting capabilities
 for the NexusKnowledge project, including container management, build monitoring,
@@ -40,7 +40,8 @@ def get_docker_status() -> str:
             ["docker", "ps", "-a", "--format", "json"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         containers = []
@@ -54,7 +55,8 @@ def get_docker_status() -> str:
             ["docker-compose", "ps", "--format", "json"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         compose_services = []
@@ -68,7 +70,8 @@ def get_docker_status() -> str:
             ["docker", "system", "df", "--format", "json"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         system_info = []
@@ -166,7 +169,8 @@ def get_container_logs(container_name: str, lines: int = 100) -> str:
             ["docker", "logs", "--tail", str(lines), container_name],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         logs = result.stdout.split("\n") if result.stdout else []
@@ -214,7 +218,8 @@ def check_docker_health() -> str:
                     ["docker-compose", "ps", service],
                     capture_output=True,
                     text=True,
-                    cwd=PROJECT_ROOT, check=False,
+                    cwd=PROJECT_ROOT,
+                    check=False,
                 )
 
                 if result.returncode == 0:
@@ -229,7 +234,8 @@ def check_docker_health() -> str:
                         ],
                         capture_output=True,
                         text=True,
-                        cwd=PROJECT_ROOT, check=False,
+                        cwd=PROJECT_ROOT,
+                        check=False,
                     )
 
                     health_status["services"][service] = {
@@ -297,7 +303,8 @@ def restart_docker_services(services: list[str] | None = None) -> str:
                     ["docker-compose", "restart", service],
                     capture_output=True,
                     text=True,
-                    cwd=PROJECT_ROOT, check=False,
+                    cwd=PROJECT_ROOT,
+                    check=False,
                 )
 
                 restart_results[service] = {
@@ -344,7 +351,8 @@ def analyze_docker_performance() -> str:
             ["docker", "stats", "--no-stream", "--format", "json"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if result.returncode == 0 and result.stdout.strip():
@@ -360,7 +368,8 @@ def analyze_docker_performance() -> str:
             ["docker", "system", "df", "--format", "json"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if system_result.returncode == 0 and system_result.stdout.strip():
@@ -397,7 +406,11 @@ def debug_docker_issues() -> str:
 
         # Check Docker daemon
         daemon_result = subprocess.run(
-            ["docker", "version"], capture_output=True, text=True, cwd=PROJECT_ROOT, check=False,
+            ["docker", "version"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if daemon_result.returncode != 0:
@@ -411,7 +424,8 @@ def debug_docker_issues() -> str:
             ["docker-compose", "version"],
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT, check=False,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if compose_result.returncode != 0:
@@ -422,7 +436,11 @@ def debug_docker_issues() -> str:
 
         # Check for port conflicts
         port_check = subprocess.run(
-            ["netstat", "-tlnp"], capture_output=True, text=True, cwd=PROJECT_ROOT, check=False,
+            ["netstat", "-tlnp"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if port_check.returncode == 0:
@@ -436,7 +454,11 @@ def debug_docker_issues() -> str:
 
         # Check disk space
         disk_result = subprocess.run(
-            ["df", "-h"], capture_output=True, text=True, cwd=PROJECT_ROOT, check=False,
+            ["df", "-h"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if disk_result.returncode == 0:
@@ -449,7 +471,11 @@ def debug_docker_issues() -> str:
 
         # Check Docker images
         images_result = subprocess.run(
-            ["docker", "images"], capture_output=True, text=True, cwd=PROJECT_ROOT, check=False,
+            ["docker", "images"],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            check=False,
         )
 
         if images_result.returncode == 0:
@@ -474,8 +500,7 @@ def docker_status_resource() -> str:
         if data.get("success"):
             container_count = len(data.get("containers", []))
             return f"Docker Status: {container_count} containers running"
-        else:
-            return f"Docker Status: Error - {data.get('error', 'Unknown error')}"
+        return f"Docker Status: Error - {data.get('error', 'Unknown error')}"
     except Exception as e:
         return f"Error getting Docker status: {e!s}"
 
@@ -489,8 +514,7 @@ def docker_health_resource() -> str:
         if data.get("success"):
             overall_health = data.get("overall_health", "unknown")
             return f"Docker Health: {overall_health}"
-        else:
-            return f"Docker Health: Error - {data.get('error', 'Unknown error')}"
+        return f"Docker Health: Error - {data.get('error', 'Unknown error')}"
     except Exception as e:
         return f"Error getting Docker health: {e!s}"
 

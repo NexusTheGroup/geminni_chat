@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GitHub MCP Server for NexusKnowledge
+"""GitHub MCP Server for NexusKnowledge.
 
 This MCP server provides GitHub integration capabilities for the NexusKnowledge project,
 including repository management, issue tracking, and CI/CD monitoring.
@@ -77,14 +77,13 @@ def get_repository_info() -> str:
                 },
                 indent=2,
             )
-        else:
-            return json.dumps(
-                {
-                    "error": f"GitHub API error: {response.status_code}",
-                    "success": False,
-                },
-                indent=2,
-            )
+        return json.dumps(
+            {
+                "error": f"GitHub API error: {response.status_code}",
+                "success": False,
+            },
+            indent=2,
+        )
 
     except Exception as e:
         return json.dumps({"error": str(e), "success": False}, indent=2)
@@ -143,14 +142,13 @@ def list_recent_commits(limit: int = 10) -> str:
                 {"success": True, "commits": commit_list, "count": len(commit_list)},
                 indent=2,
             )
-        else:
-            return json.dumps(
-                {
-                    "error": f"GitHub API error: {response.status_code}",
-                    "success": False,
-                },
-                indent=2,
-            )
+        return json.dumps(
+            {
+                "error": f"GitHub API error: {response.status_code}",
+                "success": False,
+            },
+            indent=2,
+        )
 
     except Exception as e:
         return json.dumps({"error": str(e), "success": False}, indent=2)
@@ -219,14 +217,13 @@ def list_open_issues(limit: int = 10) -> str:
                 {"success": True, "issues": issue_list, "count": len(issue_list)},
                 indent=2,
             )
-        else:
-            return json.dumps(
-                {
-                    "error": f"GitHub API error: {response.status_code}",
-                    "success": False,
-                },
-                indent=2,
-            )
+        return json.dumps(
+            {
+                "error": f"GitHub API error: {response.status_code}",
+                "success": False,
+            },
+            indent=2,
+        )
 
     except Exception as e:
         return json.dumps({"error": str(e), "success": False}, indent=2)
@@ -294,14 +291,13 @@ def list_pull_requests(limit: int = 10) -> str:
                 {"success": True, "pull_requests": pr_list, "count": len(pr_list)},
                 indent=2,
             )
-        else:
-            return json.dumps(
-                {
-                    "error": f"GitHub API error: {response.status_code}",
-                    "success": False,
-                },
-                indent=2,
-            )
+        return json.dumps(
+            {
+                "error": f"GitHub API error: {response.status_code}",
+                "success": False,
+            },
+            indent=2,
+        )
 
     except Exception as e:
         return json.dumps({"error": str(e), "success": False}, indent=2)
@@ -363,14 +359,13 @@ def check_github_actions_status() -> str:
                 },
                 indent=2,
             )
-        else:
-            return json.dumps(
-                {
-                    "error": f"GitHub API error: {response.status_code}",
-                    "success": False,
-                },
-                indent=2,
-            )
+        return json.dumps(
+            {
+                "error": f"GitHub API error: {response.status_code}",
+                "success": False,
+            },
+            indent=2,
+        )
 
     except Exception as e:
         return json.dumps({"error": str(e), "success": False}, indent=2)
@@ -394,7 +389,8 @@ def get_local_git_status() -> str:
                 ["git", "branch", "--show-current"],
                 capture_output=True,
                 text=True,
-                cwd=PROJECT_ROOT, check=False,
+                cwd=PROJECT_ROOT,
+                check=False,
             )
             git_status["git_info"]["current_branch"] = branch_result.stdout.strip()
         except Exception as e:
@@ -406,7 +402,8 @@ def get_local_git_status() -> str:
                 ["git", "status", "--porcelain"],
                 capture_output=True,
                 text=True,
-                cwd=PROJECT_ROOT, check=False,
+                cwd=PROJECT_ROOT,
+                check=False,
             )
             git_status["git_info"]["status"] = (
                 status_result.stdout.strip().split("\n")
@@ -422,7 +419,8 @@ def get_local_git_status() -> str:
                 ["git", "log", "-1", "--oneline"],
                 capture_output=True,
                 text=True,
-                cwd=PROJECT_ROOT, check=False,
+                cwd=PROJECT_ROOT,
+                check=False,
             )
             git_status["git_info"]["last_commit"] = commit_result.stdout.strip()
         except Exception as e:
@@ -434,7 +432,8 @@ def get_local_git_status() -> str:
                 ["git", "remote", "get-url", "origin"],
                 capture_output=True,
                 text=True,
-                cwd=PROJECT_ROOT, check=False,
+                cwd=PROJECT_ROOT,
+                check=False,
             )
             git_status["git_info"]["remote_url"] = remote_result.stdout.strip()
         except Exception as e:
@@ -501,14 +500,13 @@ def create_issue(title: str, body: str, labels: list[str] | None = None) -> str:
                 },
                 indent=2,
             )
-        else:
-            return json.dumps(
-                {
-                    "error": f"GitHub API error: {response.status_code} - {response.text}",
-                    "success": False,
-                },
-                indent=2,
-            )
+        return json.dumps(
+            {
+                "error": f"GitHub API error: {response.status_code} - {response.text}",
+                "success": False,
+            },
+            indent=2,
+        )
 
     except Exception as e:
         return json.dumps({"error": str(e), "success": False}, indent=2)
@@ -523,8 +521,7 @@ def repository_info_resource() -> str:
         if data.get("success"):
             repo = data["repository"]
             return f"Repository: {repo['full_name']}\nDescription: {repo['description']}\nStars: {repo['stars']}\nOpen Issues: {repo['open_issues']}"
-        else:
-            return f"Error: {data.get('error', 'Unknown error')}"
+        return f"Error: {data.get('error', 'Unknown error')}"
     except Exception as e:
         return f"Error getting repository info: {e!s}"
 
@@ -538,8 +535,7 @@ def repository_status_resource() -> str:
         if data.get("success"):
             git_info = data["git_info"]
             return f"Branch: {git_info.get('current_branch', 'Unknown')}\nLast Commit: {git_info.get('last_commit', 'Unknown')}\nRemote: {git_info.get('remote_url', 'Unknown')}"
-        else:
-            return f"Error: {data.get('error', 'Unknown error')}"
+        return f"Error: {data.get('error', 'Unknown error')}"
     except Exception as e:
         return f"Error getting repository status: {e!s}"
 

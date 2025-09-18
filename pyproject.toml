@@ -38,6 +38,8 @@ target-version = ['py311']
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -86,3 +88,12 @@ unfixable = ["T20"] # Don't auto-fix print statements
     "PLR2004", # magic values in tests
 ]
 "src/main.py" = ["T201"]  # allow prints for demo CLI
+"src/nexus_knowledge/mcp/**" = [
+    "S603",  # subprocess calls are expected in MCP servers
+    "S607",  # partial executable paths are acceptable for system tools
+    "PLR2004", # magic values for HTTP status codes are acceptable
+    "C901",  # complex functions are acceptable for debugging tools
+    "PERF401", # list comprehensions vs loops are acceptable
+    "RET505", # unnecessary else after return is acceptable
+    "E722",  # bare except is acceptable for debugging
+]
