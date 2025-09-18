@@ -59,7 +59,9 @@ def test_run_analysis_logs_entities(sqlite_db, tmp_path, monkeypatch) -> None:
 
 
 def test_run_analysis_without_turns_marks_failure(
-    sqlite_db, tmp_path, monkeypatch,
+    sqlite_db,
+    tmp_path,
+    monkeypatch,
 ) -> None:
     _, session_factory, _ = sqlite_db
     monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
@@ -71,9 +73,8 @@ def test_run_analysis_without_turns_marks_failure(
             content={"messages": []},
         )
 
-    with session_factory.begin() as session:
-        with pytest.raises(AnalysisError):
-            run_analysis_for_raw_data(session, raw_id)
+    with session_factory.begin() as session, pytest.raises(AnalysisError):
+        run_analysis_for_raw_data(session, raw_id)
 
     with session_factory() as session:
         record = repository.get_raw_data(session, raw_id)

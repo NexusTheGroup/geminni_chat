@@ -85,6 +85,9 @@ def run_analysis_for_raw_data(session: Session, raw_data_id: uuid.UUID) -> int:
         )
 
     update_raw_data_status(
-        session, raw_data_id, status="ANALYZED", processed_at=datetime.now(UTC),
+        session,
+        raw_data_id,
+        status="ANALYZED",
+        processed_at=datetime.now(UTC),
     )
     return len(entities)

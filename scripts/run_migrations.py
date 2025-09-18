@@ -22,10 +22,15 @@ def _load_config() -> Config:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run Alembic migrations.")
     parser.add_argument(
-        "revision", nargs="?", default="head", help="Target revision (default: head)",
+        "revision",
+        nargs="?",
+        default="head",
+        help="Target revision (default: head)",
     )
     parser.add_argument(
-        "--downgrade", action="store_true", help="Downgrade instead of upgrade.",
+        "--downgrade",
+        action="store_true",
+        help="Downgrade instead of upgrade.",
     )
     args = parser.parse_args()
 

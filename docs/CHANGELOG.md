@@ -26,3 +26,4 @@ All notable changes to this project will be documented in this file.
   - DeepThink — high‑reasoning model for complex, code‑centric reasoning.
 - Updated `AGENTS.md`, `personas.md`, `prompts.md`, `docs/AI_UTILIZATION_STRATEGY.md`, `README.md`, `docs/ENV.md`.
 - Clarified example source types in `docs/API_SURFACE.md` and `docs/DB_SCHEMA.sql` to include `deepseek_chat`, `deepthink`, and `grok_chat`.
+- Tightened typing + dependency wiring to satisfy Ruff/pytest CI guardrails (FastAPI session deps, ingestion JSON types, search snippet constant, Obsidian export annotations).

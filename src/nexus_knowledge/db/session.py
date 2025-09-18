@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable, Generator
+from collections.abc import Generator
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
@@ -26,7 +26,7 @@ def get_database_url() -> str:
 
 def get_engine(echo: bool = False, url: str | None = None) -> Engine:
     """Create (or return a cached) SQLAlchemy engine for the configured database."""
-    global _ENGINE
+    global _ENGINE  # noqa: PLW0603
     if url is not None or _ENGINE is None:
         database_url = url or get_database_url()
         _ENGINE = create_engine(database_url, echo=echo, future=True)
@@ -35,7 +35,7 @@ def get_engine(echo: bool = False, url: str | None = None) -> Engine:
 
 def get_session_factory(engine: Engine | None = None) -> sessionmaker[Session]:
     """Return a session factory bound to the configured engine."""
-    global _SESSION_FACTORY
+    global _SESSION_FACTORY  # noqa: PLW0603
     if engine is not None:
         _SESSION_FACTORY = sessionmaker(
             bind=engine,
@@ -77,20 +77,16 @@ def session_scope(
 
 def reset_session_factory() -> None:
     """Reset cached engine/session factory (useful for tests)."""
-    global _ENGINE, _SESSION_FACTORY
+    global _ENGINE, _SESSION_FACTORY  # noqa: PLW0603
     _ENGINE = None
     _SESSION_FACTORY = None
 
 
-def get_session_dependency() -> Callable[[], Generator[Session, None, None]]:
-    """Return a FastAPI-compatible dependency for DB sessions."""
-
-    def _dependency() -> Generator[Session, None, None]:
-        factory = get_session_factory()
-        session = factory()
-        try:
-            yield session
-        finally:
-            session.close()
-
-    return _dependency
+def get_session_dependency() -> Generator[Session, None, None]:
+    """Yield a SQLAlchemy session for FastAPI dependencies."""
+    factory = get_session_factory()
+    session = factory()
+    try:
+        yield session
+    finally:
+        session.close()

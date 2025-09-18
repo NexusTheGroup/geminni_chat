@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import TypeAlias
 
 from nexus_knowledge.db.models import ConversationTurn
 from nexus_knowledge.db.repository import (
@@ -18,6 +18,11 @@ from nexus_knowledge.db.repository import (
 )
 from sqlalchemy.orm import Session
 
+JSONPrimitive = str | int | float | bool | None
+JSONValue: TypeAlias = JSONPrimitive | dict[str, "JSONValue"] | list["JSONValue"]
+JSONDict: TypeAlias = dict[str, JSONValue]
+MessagePayload: TypeAlias = dict[str, JSONValue]
+
 
 class IngestionError(RuntimeError):
     """Raised when ingestion or normalization fails."""
@@ -27,16 +32,16 @@ class IngestionError(RuntimeError):
 class ConversationPayload:
     """Flattened representation of a conversation ready for normalization."""
 
-    metadata: dict[str, Any]
-    messages: list[dict[str, Any]]
+    metadata: JSONDict
+    messages: list[MessagePayload]
 
 
 def ingest_raw_payload(
     session: Session,
     *,
     source_type: str,
-    content: Any,
-    metadata: dict[str, Any] | None = None,
+    content: JSONValue,
+    metadata: JSONDict | None = None,
     source_id: str | None = None,
 ) -> uuid.UUID:
     """Persist raw ingestion payload and return its identifier."""
@@ -78,9 +83,14 @@ def normalize_raw_data(session: Session, record_id: uuid.UUID) -> int:
 
     for conversation in conversations:
         conversation_id = _resolve_conversation_id(conversation.metadata)
-        source_platform = conversation.metadata.get(
-            "source_platform",
-        ) or conversation.metadata.get("sourcePlatform")
+        source_platform_value = conversation.metadata.get("source_platform")
+        if source_platform_value is None:
+            source_platform_value = conversation.metadata.get("sourcePlatform")
+        source_platform = (
+            str(source_platform_value)
+            if isinstance(source_platform_value, str)
+            else None
+        )
         for index, message in enumerate(conversation.messages):
             speaker = str(message.get("role", "unknown")).upper()
             text = str(message.get("content", "")).strip()
@@ -104,44 +114,57 @@ def normalize_raw_data(session: Session, record_id: uuid.UUID) -> int:
 
     create_conversation_turns(session, turns)
     update_raw_data_status(
-        session, record_id, status="NORMALIZED", processed_at=datetime.now(UTC),
+        session,
+        record_id,
+        status="NORMALIZED",
+        processed_at=datetime.now(UTC),
     )
     return len(turns)
 
 
-def _flatten_conversations(payload: Any) -> Sequence[ConversationPayload]:
+def _flatten_conversations(  # noqa: C901
+    payload: JSONValue,
+) -> Sequence[ConversationPayload]:
     """Extract conversations + messages from heterogeneous payloads."""
     conversations: list[ConversationPayload] = []
 
-    def _walk(node: Any, inherited: dict[str, Any] | None = None) -> None:
-        inherited_metadata = dict(inherited or {})
+    def _walk(node: JSONValue, inherited: JSONDict | None = None) -> None:
+        inherited_metadata: JSONDict = dict(inherited or {})
 
         if isinstance(node, dict):
             # Direct conversation structure
-            if isinstance(node.get("messages"), list):
+            messages = node.get("messages")
+            if isinstance(messages, list):
                 metadata = {
                     key: value
                     for key, value in node.items()
                     if key not in {"messages", "conversations"}
                 }
                 metadata = {**inherited_metadata, **metadata}
+                message_payloads: list[MessagePayload] = [
+                    message for message in messages if isinstance(message, dict)
+                ]
+                if len(message_payloads) != len(messages):
+                    raise IngestionError("Conversation messages must be objects")
                 conversations.append(
                     ConversationPayload(
-                        metadata=metadata, messages=list(node["messages"]),
+                        metadata=metadata,
+                        messages=message_payloads,
                     ),
                 )
 
             # Nested conversations list
-            if isinstance(node.get("conversations"), list):
+            nested_conversations = node.get("conversations")
+            if isinstance(nested_conversations, list):
                 parent_meta = {
                     key: value for key, value in node.items() if key != "conversations"
                 }
                 parent_meta = {**inherited_metadata, **parent_meta}
-                for child in node["conversations"]:
+                for child in nested_conversations:
                     _walk(child, parent_meta)
             else:
                 for value in node.values():
-                    if isinstance(value, (dict, list)):
+                    if isinstance(value, dict | list):
                         _walk(value, inherited_metadata)
 
         elif isinstance(node, list):
@@ -152,14 +175,14 @@ def _flatten_conversations(payload: Any) -> Sequence[ConversationPayload]:
     return conversations
 
 
-def _resolve_conversation_id(metadata: dict[str, Any]) -> uuid.UUID:
+def _resolve_conversation_id(metadata: JSONDict) -> uuid.UUID:
     source_id = metadata.get("source_id") or metadata.get("sourceId")
     if isinstance(source_id, str) and source_id:
         return uuid.uuid5(uuid.NAMESPACE_URL, source_id)
     return uuid.uuid4()
 
 
-def _parse_timestamp(value: Any) -> datetime:
+def _parse_timestamp(value: JSONValue) -> datetime:
     if not value:
         return datetime.now(UTC)
 

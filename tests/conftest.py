@@ -24,7 +24,8 @@ def _alembic_config(database_url: str) -> Config:
 
 @pytest.fixture()
 def sqlite_db(
-    tmp_path, monkeypatch,
+    tmp_path,
+    monkeypatch,
 ) -> Generator[tuple[str, sessionmaker[Session]], None, None]:
     """Provide a temporary SQLite database populated via Alembic migrations."""
     db_path = tmp_path / "nexus_knowledge.db"

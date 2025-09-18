@@ -30,7 +30,10 @@ def _pair_key(entity_a: uuid.UUID, entity_b: uuid.UUID) -> tuple[uuid.UUID, uuid
 
 
 def generate_candidates_for_raw(
-    session: Session, raw_data_id: uuid.UUID, *, min_score: float = 0.05,
+    session: Session,
+    raw_data_id: uuid.UUID,
+    *,
+    min_score: float = 0.05,
 ) -> int:
     """Produce correlation candidates from analyzed entities."""
     record = get_raw_data(session, raw_data_id)
@@ -113,7 +116,10 @@ def _compute_score(relevance_a: float, relevance_b: float) -> float:
 
 
 def fuse_candidates_for_raw(
-    session: Session, raw_data_id: uuid.UUID, *, min_score: float = 0.2,
+    session: Session,
+    raw_data_id: uuid.UUID,
+    *,
+    min_score: float = 0.2,
 ) -> dict[str, int]:
     """Fuse correlation candidates into confirmed relationships."""
     record = get_raw_data(session, raw_data_id)

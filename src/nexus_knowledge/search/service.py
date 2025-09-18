@@ -9,6 +9,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 TOKEN_PATTERN = re.compile(r"[\w']+")
+SNIPPET_MAX_LENGTH = 200
 
 
 class SearchError(RuntimeError):
@@ -32,7 +33,10 @@ def _semantic_score(query_tokens: list[str], text_tokens: list[str]) -> float:
 
 
 def hybrid_search(
-    session: Session, query: str, *, limit: int = 10,
+    session: Session,
+    query: str,
+    *,
+    limit: int = 10,
 ) -> list[dict[str, object]]:
     """Return ranked conversation turns using keyword + semantic heuristics."""
     query_tokens = _tokenize(query)
@@ -75,10 +79,10 @@ def hybrid_search(
     scored_results.sort(key=lambda row: row[0], reverse=True)
 
     results = []
-    for score, turn, text_tokens in scored_results[:limit]:
+    for score, turn, _ in scored_results[:limit]:
         snippet = turn.text
-        if len(snippet) > 200:
-            snippet = snippet[:197] + "..."
+        if len(snippet) > SNIPPET_MAX_LENGTH:
+            snippet = snippet[: SNIPPET_MAX_LENGTH - 3] + "..."
         results.append(
             {
                 "turn_id": str(turn.id),

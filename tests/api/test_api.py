@@ -190,7 +190,9 @@ def test_ingestion_status_endpoint(sqlite_db, monkeypatch) -> None:
     # Manually set status to NORMALIZED for deterministic response
     with session_factory.begin() as session:
         repository.update_raw_data_status(
-            session, uuid.UUID(raw_data_id), status="NORMALIZED",
+            session,
+            uuid.UUID(raw_data_id),
+            status="NORMALIZED",
         )
 
     status_response = client.get(f"/api/v1/ingest/{raw_data_id}")
@@ -207,7 +209,9 @@ def test_analysis_endpoint_monkeypatched(sqlite_db, monkeypatch) -> None:
     monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
     monkeypatch.setattr(module.analyze_raw_data_task, "delay", lambda raw_id: None)
     monkeypatch.setattr(
-        module.generate_correlation_candidates_task, "delay", lambda raw_id: None,
+        module.generate_correlation_candidates_task,
+        "delay",
+        lambda raw_id: None,
     )
 
     client = TestClient(module.app)
@@ -232,7 +236,9 @@ def test_analysis_endpoint_monkeypatched(sqlite_db, monkeypatch) -> None:
     # Mark as normalized to satisfy precondition
     with session_factory.begin() as session:
         repository.update_raw_data_status(
-            session, uuid.UUID(raw_data_id), status="NORMALIZED",
+            session,
+            uuid.UUID(raw_data_id),
+            status="NORMALIZED",
         )
 
     analysis_resp = client.post(
@@ -252,7 +258,9 @@ def test_analysis_status_endpoint(sqlite_db, monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
     monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
     monkeypatch.setattr(
-        module.generate_correlation_candidates_task, "delay", lambda raw_id: None,
+        module.generate_correlation_candidates_task,
+        "delay",
+        lambda raw_id: None,
     )
     client = TestClient(module.app)
 
@@ -292,10 +300,14 @@ def test_correlation_endpoints(sqlite_db, monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(module.normalize_raw_data_task, "delay", lambda raw_id: None)
     monkeypatch.setattr(module.analyze_raw_data_task, "delay", lambda raw_id: None)
     monkeypatch.setattr(
-        module.generate_correlation_candidates_task, "delay", lambda raw_id: None,
+        module.generate_correlation_candidates_task,
+        "delay",
+        lambda raw_id: None,
     )
     monkeypatch.setattr(
-        module.fuse_correlation_candidates_task, "delay", lambda raw_id: None,
+        module.fuse_correlation_candidates_task,
+        "delay",
+        lambda raw_id: None,
     )
     monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
 

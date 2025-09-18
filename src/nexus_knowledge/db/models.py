@@ -35,7 +35,9 @@ class RawData(Base):
     source_id: Mapped[str | None] = mapped_column(String(255))
     content: Mapped[str] = mapped_column(Text, nullable=False)
     metadata_: Mapped[dict[str, Any]] = mapped_column(
-        "metadata", JSONBType(), default=default_dict,
+        "metadata",
+        JSONBType(),
+        default=default_dict,
     )
     ingested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -54,7 +56,8 @@ class ConversationTurn(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
     raw_data_id: Mapped[uuid.UUID | None] = mapped_column(
-        GUID(), ForeignKey("raw_data.id", ondelete="SET NULL"),
+        GUID(),
+        ForeignKey("raw_data.id", ondelete="SET NULL"),
     )
     conversation_id: Mapped[uuid.UUID] = mapped_column(GUID(), nullable=False)
     turn_index: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -62,7 +65,9 @@ class ConversationTurn(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     metadata_: Mapped[dict[str, Any]] = mapped_column(
-        "metadata", JSONBType(), default=default_dict,
+        "metadata",
+        JSONBType(),
+        default=default_dict,
     )
 
 
@@ -73,14 +78,17 @@ class Entity(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
     conversation_turn_id: Mapped[uuid.UUID] = mapped_column(
-        GUID(), ForeignKey("conversation_turns.id", ondelete="CASCADE"),
+        GUID(),
+        ForeignKey("conversation_turns.id", ondelete="CASCADE"),
     )
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     sentiment: Mapped[str | None] = mapped_column(String(20))
     relevance: Mapped[float | None] = mapped_column(Float)
     metadata_: Mapped[dict[str, Any]] = mapped_column(
-        "metadata", JSONBType(), default=default_dict,
+        "metadata",
+        JSONBType(),
+        default=default_dict,
     )
 
 
@@ -91,15 +99,19 @@ class Relationship(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
     source_entity_id: Mapped[uuid.UUID] = mapped_column(
-        GUID(), ForeignKey("entities.id", ondelete="CASCADE"),
+        GUID(),
+        ForeignKey("entities.id", ondelete="CASCADE"),
     )
     target_entity_id: Mapped[uuid.UUID] = mapped_column(
-        GUID(), ForeignKey("entities.id", ondelete="CASCADE"),
+        GUID(),
+        ForeignKey("entities.id", ondelete="CASCADE"),
     )
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     strength: Mapped[float | None] = mapped_column(Float)
     metadata_: Mapped[dict[str, Any]] = mapped_column(
-        "metadata", JSONBType(), default=default_dict,
+        "metadata",
+        JSONBType(),
+        default=default_dict,
     )
 
 
@@ -110,13 +122,19 @@ class CorrelationCandidate(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
     raw_data_id: Mapped[uuid.UUID] = mapped_column(
-        GUID(), ForeignKey("raw_data.id", ondelete="CASCADE"), nullable=False,
+        GUID(),
+        ForeignKey("raw_data.id", ondelete="CASCADE"),
+        nullable=False,
     )
     source_entity_id: Mapped[uuid.UUID] = mapped_column(
-        GUID(), ForeignKey("entities.id", ondelete="CASCADE"), nullable=False,
+        GUID(),
+        ForeignKey("entities.id", ondelete="CASCADE"),
+        nullable=False,
     )
     target_entity_id: Mapped[uuid.UUID] = mapped_column(
-        GUID(), ForeignKey("entities.id", ondelete="CASCADE"), nullable=False,
+        GUID(),
+        ForeignKey("entities.id", ondelete="CASCADE"),
+        nullable=False,
     )
     score: Mapped[float] = mapped_column(Float, nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="PENDING", nullable=False)
@@ -127,7 +145,9 @@ class CorrelationCandidate(Base):
         nullable=False,
     )
     metadata_: Mapped[dict[str, Any]] = mapped_column(
-        "metadata", JSONBType(), default=default_dict,
+        "metadata",
+        JSONBType(),
+        default=default_dict,
     )
 
 
@@ -154,7 +174,9 @@ class MLflowRun(Base):
     __tablename__ = "mlflow_runs"
 
     run_id: Mapped[uuid.UUID] = mapped_column(
-        GUID(), primary_key=True, default=uuid.uuid4,
+        GUID(),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     experiment_id: Mapped[str] = mapped_column(String(255), nullable=False)
     run_name: Mapped[str | None] = mapped_column(String(255))
@@ -185,5 +207,7 @@ class DVCDataAsset(Base):
         nullable=False,
     )
     metadata_: Mapped[dict[str, Any]] = mapped_column(
-        "metadata", JSONBType(), default=default_dict,
+        "metadata",
+        JSONBType(),
+        default=default_dict,
     )

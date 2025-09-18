@@ -58,7 +58,10 @@ def upgrade() -> None:
         ),
         sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
-            "status", sa.String(length=50), nullable=False, server_default="INGESTED",
+            "status",
+            sa.String(length=50),
+            nullable=False,
+            server_default="INGESTED",
         ),
     )
 
@@ -89,7 +92,9 @@ def upgrade() -> None:
             server_default=_json_server_default(is_postgres),
         ),
         sa.UniqueConstraint(
-            "conversation_id", "turn_index", name="uq_conversation_turn",
+            "conversation_id",
+            "turn_index",
+            name="uq_conversation_turn",
         ),
     )
 
@@ -252,7 +257,8 @@ def downgrade() -> None:
     op.drop_index("idx_entities_value", table_name="entities")
     op.drop_index("idx_entities_type", table_name="entities")
     op.drop_index(
-        "idx_conversation_turns_conversation_id", table_name="conversation_turns",
+        "idx_conversation_turns_conversation_id",
+        table_name="conversation_turns",
     )
     op.drop_index("idx_raw_data_status", table_name="raw_data")
     op.drop_index("idx_raw_data_source_type", table_name="raw_data")

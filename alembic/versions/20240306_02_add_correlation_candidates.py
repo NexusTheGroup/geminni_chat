@@ -42,7 +42,10 @@ def upgrade() -> None:
         ),
         sa.Column("score", sa.Float(), nullable=False),
         sa.Column(
-            "status", sa.String(length=50), nullable=False, server_default="PENDING",
+            "status",
+            sa.String(length=50),
+            nullable=False,
+            server_default="PENDING",
         ),
         sa.Column("rationale", sa.Text(), nullable=True),
         sa.Column(
@@ -52,7 +55,10 @@ def upgrade() -> None:
             server_default=sa.func.now(),
         ),
         sa.Column(
-            "metadata", JSONBType(), nullable=False, server_default=metadata_default,
+            "metadata",
+            JSONBType(),
+            nullable=False,
+            server_default=metadata_default,
         ),
     )
     op.create_index(
@@ -69,9 +75,11 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(
-        "idx_correlation_candidates_status", table_name="correlation_candidates",
+        "idx_correlation_candidates_status",
+        table_name="correlation_candidates",
     )
     op.drop_index(
-        "idx_correlation_candidates_raw_data", table_name="correlation_candidates",
+        "idx_correlation_candidates_raw_data",
+        table_name="correlation_candidates",
     )
     op.drop_table("correlation_candidates")

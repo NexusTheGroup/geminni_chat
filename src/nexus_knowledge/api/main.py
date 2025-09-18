@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
@@ -26,6 +26,7 @@ from nexus_knowledge.tasks import (
     persist_feedback,
 )
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
 
 
 def _resolve_version() -> str:
@@ -46,6 +47,9 @@ app = FastAPI(
     openapi_url=f"{API_PREFIX}/openapi.json",
 )
 api_router = APIRouter(prefix=API_PREFIX)
+
+
+SessionDependency = Annotated[Session, Depends(get_session_dependency)]
 
 
 UI_HTML = """<!DOCTYPE html>
@@ -167,7 +171,9 @@ class FeedbackRequest(BaseModel):
     feedback_type: str = Field(..., alias="type", description="Type of feedback.")
     message: str = Field(..., min_length=1, description="Feedback message body.")
     user_id: uuid.UUID | None = Field(
-        None, alias="userId", description="Optional user identifier.",
+        None,
+        alias="userId",
+        description="Optional user identifier.",
     )
 
     model_config = ConfigDict(populate_by_name=True)
@@ -197,11 +203,14 @@ class FeedbackStatusUpdate(BaseModel):
 
 class IngestionRequest(BaseModel):
     source_type: str = Field(
-        ..., alias="sourceType", description="Identifier for the data source.",
+        ...,
+        alias="sourceType",
+        description="Identifier for the data source.",
     )
     content: Any = Field(..., description="Raw payload to ingest.")
     metadata: dict[str, Any] | None = Field(
-        default=None, description="Optional metadata for the payload.",
+        default=None,
+        description="Optional metadata for the payload.",
     )
     source_id: str | None = Field(
         default=None,
@@ -344,13 +353,15 @@ async def submit_feedback(payload: FeedbackRequest) -> FeedbackResponse:
     tags=["Feedback"],
 )
 async def get_feedback_status(
-    feedback_id: uuid.UUID, session=Depends(get_session_dependency()),
+    feedback_id: uuid.UUID,
+    session: SessionDependency,
 ) -> FeedbackResponse:
     """Retrieve persisted feedback details after the Celery task completes."""
     record = get_user_feedback(session, feedback_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback not found",
         )
 
     return FeedbackResponse(feedback_id=record.id, message=record.message)
@@ -364,7 +375,8 @@ async def get_feedback_status(
 async def list_feedback_items(
     status: str | None = Query(None, description="Filter by feedback status."),
     limit: int = Query(50, ge=1, le=200),
-    session=Depends(get_session_dependency()),
+    *,
+    session: SessionDependency,
 ) -> list[FeedbackListItem]:
     """Return stored feedback items."""
     records = list_feedback(session, status=status, limit=limit)
@@ -389,13 +401,14 @@ async def list_feedback_items(
 async def update_feedback(
     feedback_id: uuid.UUID,
     payload: FeedbackStatusUpdate,
-    session=Depends(get_session_dependency()),
+    session: SessionDependency,
 ) -> FeedbackListItem:
     """Update feedback status for triage workflows."""
     record = update_feedback_status(session, feedback_id, status=payload.status)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback not found",
         )
 
     return FeedbackListItem(
@@ -416,7 +429,7 @@ async def update_feedback(
 )
 async def ingest_payload(
     payload: IngestionRequest,
-    session=Depends(get_session_dependency()),
+    session: SessionDependency,
 ) -> IngestionResponse:
     """Persist a raw payload and schedule normalization via Celery."""
     raw_data_id = ingest_raw_payload(
@@ -437,13 +450,15 @@ async def ingest_payload(
     tags=["Ingestion"],
 )
 async def get_ingestion_status(
-    raw_data_id: uuid.UUID, session=Depends(get_session_dependency()),
+    raw_data_id: uuid.UUID,
+    session: SessionDependency,
 ) -> IngestionStatusResponse:
     """Return the current status of an ingested payload."""
     record = get_raw_data(session, raw_data_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ingestion not found",
         )
     return IngestionStatusResponse(raw_data_id=record.id, status=record.status)
 
@@ -455,13 +470,15 @@ async def get_ingestion_status(
     tags=["Analysis"],
 )
 async def queue_analysis(
-    payload: AnalysisRequest, session=Depends(get_session_dependency()),
+    payload: AnalysisRequest,
+    session: SessionDependency,
 ) -> AnalysisResponse:
     """Queue an analysis job for a previously normalized payload."""
     record = get_raw_data(session, payload.raw_data_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ingestion not found",
         )
     if record.status not in {"NORMALIZED", "ANALYZED"}:
         raise HTTPException(
@@ -479,13 +496,15 @@ async def queue_analysis(
     tags=["Analysis"],
 )
 async def get_analysis_status(
-    raw_data_id: uuid.UUID, session=Depends(get_session_dependency()),
+    raw_data_id: uuid.UUID,
+    session: SessionDependency,
 ) -> AnalysisStatusResponse:
     """Return the status of the analysis job for the specified payload."""
     record = get_raw_data(session, raw_data_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Analysis target not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Analysis target not found",
         )
     return AnalysisStatusResponse(raw_data_id=record.id, status=record.status)
 
@@ -497,13 +516,15 @@ async def get_analysis_status(
     tags=["Correlation"],
 )
 async def queue_correlation(
-    payload: CorrelationRequest, session=Depends(get_session_dependency()),
+    payload: CorrelationRequest,
+    session: SessionDependency,
 ) -> CorrelationQueuedResponse:
     """Queue correlation candidate generation after analysis."""
     record = get_raw_data(session, payload.raw_data_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ingestion not found",
         )
     if record.status not in {
         "ANALYZED",
@@ -525,13 +546,15 @@ async def queue_correlation(
     tags=["Correlation"],
 )
 async def list_correlation(
-    raw_data_id: uuid.UUID, session=Depends(get_session_dependency()),
+    raw_data_id: uuid.UUID,
+    session: SessionDependency,
 ) -> list[CorrelationCandidateResponse]:
     """Return generated correlation candidates for the given payload."""
     record = get_raw_data(session, raw_data_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Correlation target not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Correlation target not found",
         )
 
     candidates = list_correlation_candidates(session, raw_data_id)
@@ -556,13 +579,15 @@ async def list_correlation(
     tags=["Correlation"],
 )
 async def fuse_correlation(
-    raw_data_id: uuid.UUID, session=Depends(get_session_dependency()),
+    raw_data_id: uuid.UUID,
+    session: SessionDependency,
 ) -> CorrelationFusionResponse:
     """Queue evidence fusion and relationship creation for a dataset."""
     record = get_raw_data(session, raw_data_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Correlation target not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Correlation target not found",
         )
     if record.status not in {"CORRELATION_GENERATED", "CORRELATED", "ANALYZED"}:
         raise HTTPException(
@@ -582,14 +607,16 @@ async def fuse_correlation(
 async def search_knowledge(
     q: str = Query(..., min_length=1, description="Search query string."),
     limit: int = Query(10, ge=1, le=50),
-    session=Depends(get_session_dependency()),
+    *,
+    session: SessionDependency,
 ) -> list[SearchResult]:
     """Perform hybrid search over conversation turns."""
     try:
         results = hybrid_search(session, q, limit=limit)
     except SearchError as exc:  # pragma: no cover - defensive guard
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc),
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
         ) from exc
 
     return [
@@ -614,13 +641,14 @@ async def search_knowledge(
 )
 async def queue_obsidian_export(
     payload: ObsidianExportRequest,
-    session=Depends(get_session_dependency()),
+    session: SessionDependency,
 ) -> ObsidianExportResponse:
     """Queue an Obsidian export task for the provided dataset."""
     record = get_raw_data(session, payload.raw_data_id)
     if record is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ingestion not found",
         )
 
     export_obsidian_task.delay(str(payload.raw_data_id), payload.export_path)

@@ -61,7 +61,9 @@ def test_list_and_update_feedback(sqlite_db) -> None:
         reviewed = repository.list_feedback(session, status="REVIEWED")
         assert len(reviewed) == 1
         updated = repository.update_feedback_status(
-            session, first_id, status="IN_PROGRESS",
+            session,
+            first_id,
+            status="IN_PROGRESS",
         )
         assert updated is not None
         assert updated.status == "IN_PROGRESS"

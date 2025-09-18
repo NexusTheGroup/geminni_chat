@@ -20,7 +20,7 @@ from .models import (
 )
 
 
-def create_raw_data(
+def create_raw_data(  # noqa: PLR0913
     session: Session,
     *,
     source_type: str,
@@ -71,7 +71,8 @@ def update_raw_data_status(
 
 
 def create_conversation_turns(
-    session: Session, turns: Sequence[ConversationTurn],
+    session: Session,
+    turns: Sequence[ConversationTurn],
 ) -> Sequence[ConversationTurn]:
     """Persist a batch of conversation turns."""
     session.add_all(turns)
@@ -80,7 +81,8 @@ def create_conversation_turns(
 
 
 def list_conversation_turns(
-    session: Session, conversation_id: uuid.UUID,
+    session: Session,
+    conversation_id: uuid.UUID,
 ) -> Iterable[ConversationTurn]:
     """Return all conversation turns for a given conversation identifier."""
     stmt = (
@@ -92,7 +94,8 @@ def list_conversation_turns(
 
 
 def list_turns_for_raw(
-    session: Session, raw_data_id: uuid.UUID,
+    session: Session,
+    raw_data_id: uuid.UUID,
 ) -> Sequence[ConversationTurn]:
     """Fetch all conversation turns associated with a raw payload."""
     stmt = (
@@ -121,7 +124,8 @@ def list_entities_for_raw(session: Session, raw_data_id: uuid.UUID) -> Sequence[
 
 
 def create_correlation_candidates(
-    session: Session, candidates: Sequence[CorrelationCandidate],
+    session: Session,
+    candidates: Sequence[CorrelationCandidate],
 ) -> Sequence[CorrelationCandidate]:
     """Persist correlation candidates in bulk."""
     if not candidates:
@@ -133,7 +137,8 @@ def create_correlation_candidates(
 
 
 def list_correlation_candidates(
-    session: Session, raw_data_id: uuid.UUID,
+    session: Session,
+    raw_data_id: uuid.UUID,
 ) -> Sequence[CorrelationCandidate]:
     """Fetch correlation candidates scoped to a raw payload."""
     stmt = select(CorrelationCandidate).where(
@@ -143,7 +148,9 @@ def list_correlation_candidates(
 
 
 def update_candidate_status(
-    session: Session, candidate_ids: Sequence[uuid.UUID], status: str,
+    session: Session,
+    candidate_ids: Sequence[uuid.UUID],
+    status: str,
 ) -> None:
     """Bulk update candidate status values."""
     if not candidate_ids:
@@ -159,7 +166,8 @@ def update_candidate_status(
 
 
 def create_relationships(
-    session: Session, relationships: Sequence[Relationship],
+    session: Session,
+    relationships: Sequence[Relationship],
 ) -> Sequence[Relationship]:
     """Persist relationship records."""
     if not relationships:
@@ -171,7 +179,8 @@ def create_relationships(
 
 
 def list_relationships_for_raw(
-    session: Session, raw_data_id: uuid.UUID,
+    session: Session,
+    raw_data_id: uuid.UUID,
 ) -> Sequence[Relationship]:
     """Return relationships associated with a raw payload via its entities."""
     stmt = (
@@ -183,7 +192,7 @@ def list_relationships_for_raw(
     return session.scalars(stmt).all()
 
 
-def create_user_feedback(
+def create_user_feedback(  # noqa: PLR0913
     session: Session,
     *,
     feedback_id: uuid.UUID,
@@ -206,7 +215,8 @@ def create_user_feedback(
 
 
 def get_user_feedback(
-    session: Session, feedback_id: uuid.UUID,
+    session: Session,
+    feedback_id: uuid.UUID,
 ) -> UserFeedback | None:
     """Fetch a user_feedback record by its identifier."""
     stmt = select(UserFeedback).where(UserFeedback.id == feedback_id)

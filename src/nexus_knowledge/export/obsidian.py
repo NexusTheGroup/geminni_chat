@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from pathlib import Path
@@ -21,7 +22,9 @@ class ExportError(RuntimeError):
 
 
 def export_to_obsidian(
-    session: Session, raw_data_id, export_path: str | Path,
+    session: Session,
+    raw_data_id: uuid.UUID,
+    export_path: str | Path,
 ) -> list[Path]:
     """Export conversations related to the raw payload into Markdown files."""
     record = get_raw_data(session, raw_data_id)
@@ -81,10 +84,10 @@ def export_to_obsidian(
     return written_files
 
 
-def _build_front_matter(
+def _build_front_matter(  # noqa: PLR0913
     *,
     source_type: str,
-    raw_data_id,
+    raw_data_id: uuid.UUID,
     conversation_id: str,
     conversation_turns: Iterable[ConversationTurn],
     sentiments_by_turn: dict[str, list[str]],
@@ -133,7 +136,8 @@ def _build_front_matter(
 
 
 def _build_body(
-    conversation_turns: list[ConversationTurn], sentiments_by_turn: dict[str, list[str]],
+    conversation_turns: list[ConversationTurn],
+    sentiments_by_turn: dict[str, list[str]],
 ) -> str:
     lines = [f"# Conversation {conversation_turns[0].conversation_id}"]
     for turn in conversation_turns:
