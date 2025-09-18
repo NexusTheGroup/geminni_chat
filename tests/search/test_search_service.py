@@ -47,6 +47,5 @@ def test_hybrid_search_returns_results(sqlite_db) -> None:
 def test_hybrid_search_requires_tokens(sqlite_db) -> None:
     _, session_factory, _ = sqlite_db
 
-    with session_factory() as session:
-        with pytest.raises(SearchError):
-            hybrid_search(session, "   ")
+    with session_factory() as session, pytest.raises(SearchError):
+        hybrid_search(session, "   ")

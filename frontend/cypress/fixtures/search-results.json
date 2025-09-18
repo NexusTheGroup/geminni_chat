@@ -1,0 +1,29 @@
+[
+  {
+    "turnId": "123e4567-e89b-12d3-a456-426614174000",
+    "conversationId": "456e7890-e89b-12d3-a456-426614174001",
+    "turnIndex": 1,
+    "timestamp": "2024-01-15T10:30:00Z",
+    "snippet": "This is a test search result showing how the hybrid search functionality works with semantic understanding and keyword matching.",
+    "score": 0.95,
+    "sentiment": "positive"
+  },
+  {
+    "turnId": "789e0123-e89b-12d3-a456-426614174002",
+    "conversationId": "012e3456-e89b-12d3-a456-426614174003",
+    "turnIndex": 2,
+    "timestamp": "2024-01-15T11:15:00Z",
+    "snippet": "Another search result demonstrating the advanced correlation analysis capabilities of the NexusKnowledge system.",
+    "score": 0.87,
+    "sentiment": "neutral"
+  },
+  {
+    "turnId": "345e6789-e89b-12d3-a456-426614174004",
+    "conversationId": "678e9012-e89b-12d3-a456-426614174005",
+    "turnIndex": 3,
+    "timestamp": "2024-01-15T12:00:00Z",
+    "snippet": "A third result showcasing the data management and analytics features of the platform.",
+    "score": 0.82,
+    "sentiment": "positive"
+  }
+]
