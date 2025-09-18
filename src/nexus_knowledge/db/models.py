@@ -34,6 +34,7 @@ class RawData(Base):
     source_type: Mapped[str] = mapped_column(String(50), nullable=False)
     source_id: Mapped[str | None] = mapped_column(String(255))
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    content_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
     metadata_: Mapped[dict[str, Any]] = mapped_column(
         "metadata",
         JSONBType(),

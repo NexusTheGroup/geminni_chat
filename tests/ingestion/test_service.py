@@ -3,6 +3,7 @@ from __future__ import annotations
 from nexus_knowledge.db import repository
 from nexus_knowledge.ingestion import (
     IngestionError,
+    ingest_markdown_file,
     ingest_raw_payload,
     normalize_raw_data,
 )
@@ -46,6 +47,34 @@ def test_ingest_and_normalize_single_conversation(sqlite_db) -> None:
         assert record.status == "NORMALIZED"
 
 
+def test_ingest_raw_payload_is_idempotent(sqlite_db) -> None:
+    _, session_factory, _ = sqlite_db
+    payload = _conversation_payload()
+
+    with session_factory.begin() as session:
+        first_id = ingest_raw_payload(
+            session,
+            source_type="deepseek_chat",
+            content=payload,
+        )
+
+    with session_factory.begin() as session:
+        second_id = ingest_raw_payload(
+            session,
+            source_type="deepseek_chat",
+            content=payload,
+            metadata={"extra": True},
+        )
+
+    assert first_id == second_id
+
+    with session_factory() as session:
+        record = repository.get_raw_data(session, first_id)
+        assert record is not None
+        assert record.content_hash is not None
+        assert record.metadata_["extra"] is True
+
+
 def test_ingest_nested_conversations_structure(sqlite_db) -> None:
     _, session_factory, _ = sqlite_db
     nested_payload = {
@@ -79,6 +108,36 @@ def test_ingest_nested_conversations_structure(sqlite_db) -> None:
         processed_count = normalize_raw_data(session, raw_id)
 
     assert processed_count == 3
+
+
+def test_ingest_markdown_file_normalizes_single_turn(sqlite_db, tmp_path) -> None:
+    _, session_factory, _ = sqlite_db
+    markdown_path = tmp_path / "note.md"
+    markdown_path.write_text("# Title\n\nBody text", encoding="utf-8")
+
+    with session_factory.begin() as session:
+        raw_id = ingest_markdown_file(
+            session,
+            markdown_path,
+            dataset="unit-tests",
+            tags=["import", "markdown"],
+        )
+
+    with session_factory.begin() as session:
+        processed_count = normalize_raw_data(session, raw_id)
+
+    assert processed_count == 1
+
+    with session_factory() as session:
+        record = repository.get_raw_data(session, raw_id)
+        assert record is not None
+        assert record.metadata_["title"] == "Title"
+        assert set(record.metadata_["tags"]) == {"import", "markdown"}
+
+    with session_factory.begin() as session:
+        duplicate_id = ingest_markdown_file(session, markdown_path)
+
+    assert duplicate_id == raw_id
 
 
 def test_normalize_handles_invalid_json(sqlite_db) -> None:

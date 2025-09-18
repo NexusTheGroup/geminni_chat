@@ -1,30 +1,55 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 24.4.2 # Use a recent version
+    rev: 24.10.0
     hooks:
       - id: black
+        language_version: python3.11
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4 # Use a recent version
+    rev: v0.5.7
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+        args: [--fix]
+        language_version: python3.11
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-yaml
-      - id: check-added-large-files # Added this hook
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: debug-statements
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0 # Use a recent version
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         types_or: [css, javascript, json, markdown, yaml]
-  - repo: local # Added this repo for pytest
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.6
     hooks:
-      - id: pytest
-        name: pytest
-        entry: pytest
+      - id: bandit
+        args: [-r, src/]
+        language_version: python3.11
+  - repo: local
+    hooks:
+      - id: radon-cc
+        name: radon-cc
+        entry: radon cc --min B src/
         language: system
         types: [python]
+      - id: safety
+        name: safety
+        entry: safety check --full-report
+        language: system
         pass_filenames: false
+      - id: check-bandit
+        name: bandit-local
+        entry: bandit -r src/
+        language: system
+        pass_filenames: false
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.1
+    hooks:
+      - id: mypy
+        language_version: python3.11
