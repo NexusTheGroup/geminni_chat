@@ -9,9 +9,9 @@ This document defines the non-negotiable process and guardrails for this reposit
 
 ## 2) Canonical Routes (read before any change)
 
--   `AGENTS.md` (this file), `prompts.md`, `personas.md`, `blueprint.md`.
--   Planning docs: `docs/TODO.md`, `docs/BUILD_PLAN.md`, `docs/TEST_MATRIX.md`, `docs/API_SURFACE.md`, `docs/DB_SCHEMA.sql`.
--   Strategy docs: `docs/AI_UTILIZATION_STRATEGY.md`, `docs/CODE_QUALITY_FRAMEWORK.md`, `docs/ENV.md`.
+- `AGENTS.md` (this file), `prompts.md`, `personas.md`, `blueprint.md`.
+- Planning docs: `docs/TODO.md`, `docs/BUILD_PLAN.md`, `docs/TEST_MATRIX.md`, `docs/API_SURFACE.md`, `docs/DB_SCHEMA.sql`.
+- Strategy docs: `docs/AI_UTILIZATION_STRATEGY.md`, `docs/CODE_QUALITY_FRAMEWORK.md`, `docs/ENV.md`.
 
 ## 3) Common Directory Layout (locked)
 
@@ -35,15 +35,17 @@ pyproject.toml
 ```
 
 ## 4) Branch & PR Protocol
+
 Branches are short-lived: feat/<task>, fix/<scope>.
 
 Each PR MUST include tests and updated docs.
 
-PRs are reviewed by the Gemini QC/Debugger persona against the CODE_QUALITY_FRAMEWORK.md.
+PRs are reviewed by the GPT-5 (via Codex) QC/Debugger persona against the CODE_QUALITY_FRAMEWORK.md.
 
 Prefer Squash and merge.
 
 ## 5) No-Stop Acceptance (global)
+
 Do not conclude a phase until:
 
 All phase deliverables exist and are cross-linked in docs/BUILD_PLAN.md.
@@ -55,3 +57,7 @@ docs/TODO.md is up to date.
 Required documentation (docs/ENV.md, CHANGELOG.md) is updated.
 
 All code meets the minimum score defined in docs/CODE_QUALITY_FRAMEWORK.md.
+
+## Asynchronous Task Execution
+
+All long-running operations, especially external API calls, MUST be implemented as asynchronous tasks and delegated to a Celery worker. Direct, blocking calls in the main application thread are forbidden.

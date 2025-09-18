@@ -1,115 +1,93 @@
+-- docs/DB_SCHEMA.sql
+-- PostgreSQL 15 Schema for NexusKnowledge Project
+
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Note: For the VECTOR type, you will need to install a PostgreSQL extension like pgvector.
--- Example: CREATE EXTENSION vector;
-
--- Table for Users (single-user system, but good practice for extensibility)
-CREATE TABLE IF NOT EXISTS users (
+-- Table for storing raw ingested data
+CREATE TABLE IF NOT EXISTS raw_data (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Table for Conversations
-CREATE TABLE IF NOT EXISTS conversations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    source_platform VARCHAR(255), -- e.g., "ChatGPT", "Bard", "Claude"
-    source_id TEXT UNIQUE, -- Original ID from the source platform
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    metadata JSONB DEFAULT '{}' -- Flexible storage for additional conversation metadata
-);
-
--- Index on user_id for faster lookup
-CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-
--- Table for Messages within Conversations
-CREATE TABLE IF NOT EXISTS messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL, -- e.g., "user", "assistant"
+    source_type VARCHAR(50) NOT NULL, -- e.g., 'deepseek_chat', 'deepthink', 'grok_chat'
+    source_id VARCHAR(255), -- Original ID from the source system
     content TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    ingested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(50) DEFAULT 'INGESTED' -- e.g., 'INGESTED', 'NORMALIZED', 'FAILED'
+);
+
+-- Table for storing normalized conversation turns
+CREATE TABLE IF NOT EXISTS conversation_turns (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    raw_data_id UUID REFERENCES raw_data(id) ON DELETE SET NULL,
+    conversation_id UUID NOT NULL,
+    turn_index INT NOT NULL,
+    speaker VARCHAR(50) NOT NULL,
+    text TEXT NOT NULL,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    token_count INTEGER,
-    metadata JSONB DEFAULT '{}' -- Flexible storage for additional message metadata
+    metadata JSONB DEFAULT '{}'::jsonb,
+    UNIQUE (conversation_id, turn_index)
 );
 
--- Index on conversation_id for faster lookup
-CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
-
--- Table for Embeddings (e.g., for messages or conversation summaries)
-CREATE TABLE IF NOT EXISTS embeddings (
+-- Table for storing analyzed entities (e.g., persons, organizations, topics)
+CREATE TABLE IF NOT EXISTS entities (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
-    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
-    embedding VECTOR(1536), -- Example dimension, adjust as needed for the chosen model (e.g., OpenAI ada-002 is 1536)
-    model_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    -- Ensure either message_id or conversation_id is present, but not both (or neither)
-    CONSTRAINT chk_embedding_target CHECK (
-        (message_id IS NOT NULL AND conversation_id IS NULL) OR
-        (message_id IS NULL AND conversation_id IS NOT NULL)
-    )
+    conversation_turn_id UUID REFERENCES conversation_turns(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- e.g., 'PERSON', 'ORG', 'TOPIC'
+    value TEXT NOT NULL,
+    sentiment VARCHAR(20), -- e.g., 'POSITIVE', 'NEGATIVE', 'NEUTRAL'
+    relevance FLOAT,
+    metadata JSONB DEFAULT '{}'::jsonb
 );
 
--- Indexes for embeddings
-CREATE INDEX IF NOT EXISTS idx_embeddings_message_id ON embeddings(message_id);
-CREATE INDEX IF NOT EXISTS idx_embeddings_conversation_id ON embeddings(conversation_id);
-
--- Table for User Feedback
-CREATE TABLE IF NOT EXISTS feedback (
+-- Table for storing relationships between entities or turns
+CREATE TABLE IF NOT EXISTS relationships (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    feedback_type VARCHAR(50) NOT NULL, -- e.g., "bug", "feature_request", "general"
+    source_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    target_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- e.g., 'MENTIONS', 'RELATES_TO', 'DISCUSSES'
+    strength FLOAT,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+-- Table for storing user feedback
+CREATE TABLE IF NOT EXISTS user_feedback (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    feedback_type VARCHAR(50) NOT NULL, -- e.g., 'bug', 'feature_request', 'general'
     message TEXT NOT NULL,
-    context JSONB DEFAULT '{}', -- Additional context like conversation_id, message_id, etc.
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    user_id UUID, -- Optional, if user is authenticated
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'NEW' -- e.g., 'NEW', 'REVIEWED', 'RESOLVED'
 );
 
--- Index on user_id for feedback
-CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id);
+-- Table for storing MLflow experiment run details (simplified representation)
+CREATE TABLE IF NOT EXISTS mlflow_runs (
+    run_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    experiment_id VARCHAR(255) NOT NULL,
+    run_name VARCHAR(255),
+    start_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    end_time TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(50),
+    params JSONB DEFAULT '{}'::jsonb,
+    metrics JSONB DEFAULT '{}'::jsonb,
+    artifacts_uri TEXT
+);
 
--- Table for Correlation Results (e.g., storing relationships between conversations/messages)
-CREATE TABLE IF NOT EXISTS correlation_results (
+-- Table for DVC-versioned data assets (metadata only)
+CREATE TABLE IF NOT EXISTS dvc_data_assets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    source_conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
-    source_message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
-    target_conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
-    target_message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
-    similarity_score REAL NOT NULL,
-    correlation_type VARCHAR(255), -- e.g., "semantic_similarity", "topic_overlap"
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    -- Ensure at least one source and one target is present
-    CONSTRAINT chk_correlation_source CHECK (source_conversation_id IS NOT NULL OR source_message_id IS NOT NULL),
-    CONSTRAINT chk_correlation_target CHECK (target_conversation_id IS NOT NULL OR target_message_id IS NOT NULL)
+    asset_name VARCHAR(255) NOT NULL UNIQUE,
+    path TEXT NOT NULL,
+    latest_version VARCHAR(255),
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB DEFAULT '{}'::jsonb
 );
 
--- Indexes for correlation results
-CREATE INDEX IF NOT EXISTS idx_correlation_source_conv_id ON correlation_results(source_conversation_id);
-CREATE INDEX IF NOT EXISTS idx_correlation_source_msg_id ON correlation_results(source_message_id);
-CREATE INDEX IF NOT EXISTS idx_correlation_target_conv_id ON correlation_results(target_conversation_id);
-CREATE INDEX IF NOT EXISTS idx_correlation_target_msg_id ON correlation_results(target_message_id);
-
--- Add a trigger to update `updated_at` columns automatically
-CREATE OR REPLACE FUNCTION update_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_users_timestamp
-BEFORE UPDATE ON users
-FOR EACH ROW
-EXECUTE FUNCTION update_timestamp();
-
-CREATE TRIGGER update_conversations_timestamp
-BEFORE UPDATE ON conversations
-FOR EACH ROW
-EXECUTE FUNCTION update_timestamp();
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_raw_data_source_type ON raw_data(source_type);
+CREATE INDEX IF NOT EXISTS idx_raw_data_status ON raw_data(status);
+CREATE INDEX IF NOT EXISTS idx_conversation_turns_conversation_id ON conversation_turns(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(type);
+CREATE INDEX IF NOT EXISTS idx_entities_value ON entities(value);
+CREATE INDEX IF NOT EXISTS idx_user_feedback_type ON user_feedback(feedback_type);
+CREATE INDEX IF NOT EXISTS idx_mlflow_runs_experiment_id ON mlflow_runs(experiment_id);

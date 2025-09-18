@@ -1,21 +1,89 @@
+# API Surface: NexusKnowledge Project (OpenAPI 3.0 Sketch)
+
+This document outlines the OpenAPI 3.0 specification sketch for the NexusKnowledge backend API, including core endpoints and the new `/v1/feedback` endpoint.
+
+```yaml
 openapi: 3.0.0
 info:
   title: NexusKnowledge API
   version: 1.0.0
-  description: Local-first API for NexusKnowledge AI conversation management system.
+  description: API for managing and synthesizing AI conversations and knowledge.
 servers:
   - url: http://localhost:8000/api/v1
     description: Local Development Server
+
+tags:
+  - name: System
+    description: Core system operations
+  - name: Feedback
+    description: User feedback operations
+  - name: Ingestion
+    description: Data ingestion operations
+  - name: Analysis
+    description: Data analysis and modeling operations
+  - name: Correlation
+    description: Knowledge correlation and pairing operations
+  - name: Search
+    description: Hybrid search and retrieval operations
+  - name: Export
+    description: Data export operations
+
 paths:
-  /health:
+  /status:
     get:
-      summary: Health Check
+      tags:
+        - System
+      summary: Get API status
+      description: Returns the current status of the API.
       responses:
         '200':
-          description: API is healthy
+          description: API is operational.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "operational"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
   /feedback:
+    get:
+      tags:
+        - Feedback
+      summary: List feedback submissions
+      description: Returns stored feedback entries optionally filtered by status.
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+          required: false
+          description: Optional status filter (e.g., NEW, IN_PROGRESS, REVIEWED).
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          required: false
+          description: Maximum number of items to return.
+      responses:
+        '200':
+          description: Feedback list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeedbackListItem'
     post:
-      summary: Submit User Feedback
+      tags:
+        - Feedback
+      summary: Submit user feedback
+      description: Allows users to submit feedback about the system.
       requestBody:
         required: true
         content:
@@ -23,102 +91,250 @@ paths:
             schema:
               $ref: '#/components/schemas/FeedbackInput'
       responses:
-        '201':
-          description: Feedback submitted successfully
+        '202':
+          description: Feedback accepted for processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
         '400':
-          description: Invalid input
-  /conversations:
+          description: Invalid feedback data provided.
+  /feedback/{feedbackId}:
     get:
-      summary: Get All Conversations
+      tags:
+        - Feedback
+      summary: Retrieve feedback details
+      description: Returns a single feedback entry.
       parameters:
-        - in: query
-          name: limit
-          schema: { type: integer, default: 10 }
-          description: Maximum number of conversations to return.
-        - in: query
-          name: offset
-          schema: { type: integer, default: 0 }
-          description: Number of conversations to skip.
+        - in: path
+          name: feedbackId
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: List of conversations
+          description: Feedback entry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '404':
+          description: Feedback not found.
+    patch:
+      tags:
+        - Feedback
+      summary: Update feedback status
+      description: Updates the status of an existing feedback entry.
+      parameters:
+        - in: path
+          name: feedbackId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackStatusInput'
+      responses:
+        '200':
+          description: Updated feedback entry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackListItem'
+        '404':
+          description: Feedback not found.
+  /feedback/{feedbackId}:
+    get:
+      tags:
+        - Feedback
+      summary: Retrieve persisted feedback details
+      description: Returns the stored feedback payload once the asynchronous task has completed.
+      parameters:
+        - in: path
+          name: feedbackId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Matching feedback record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '404':
+          description: Feedback not found.
+
+  /ingest:
+    post:
+      tags:
+        - Ingestion
+      summary: Ingest new data
+      description: Endpoint for ingesting raw conversation data or other knowledge sources.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestionInput'
+      responses:
+        '202':
+          description: Data ingestion initiated and normalization scheduled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionResponse'
+  /ingest/{rawDataId}:
+    get:
+      tags:
+        - Ingestion
+      summary: Get ingestion status
+      description: Returns the processing status for a previously ingested payload.
+      parameters:
+        - in: path
+          name: rawDataId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Status payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionStatus'
+        '404':
+          description: Ingestion not found.
+
+  /analysis:
+    post:
+      tags:
+        - Analysis
+      summary: Trigger data analysis
+      description: Initiates the analysis pipeline for newly ingested or updated data.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalysisInput'
+      responses:
+        '202':
+          description: Analysis task queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisQueued'
+
+  /analysis/{rawDataId}:
+    get:
+      tags:
+        - Analysis
+      summary: Get analysis status
+      description: Returns the latest status for the requested analysis job.
+      parameters:
+        - in: path
+          name: rawDataId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Analysis status payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisStatus'
+        '404':
+          description: Analysis target not found.
+
+  /correlation:
+    post:
+      tags:
+        - Correlation
+      summary: Generate correlation candidates
+      description: Queues candidate generation for previously analyzed datasets.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrelationInput'
+      responses:
+        '202':
+          description: Correlation task queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrelationQueued'
+  /correlation/{rawDataId}:
+    get:
+      tags:
+        - Correlation
+      summary: List correlation candidates
+      description: Returns generated correlation candidates for an analyzed dataset.
+      parameters:
+        - in: path
+          name: rawDataId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Correlation candidate list.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Conversation'
-  /conversations/{conversation_id}:
-    get:
-      summary: Get Conversation by ID
-      parameters:
-        - in: path
-          name: conversation_id
-          required: true
-          schema: { type: string }
-          description: Unique identifier of the conversation.
-      responses:
-        '200':
-          description: Conversation details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Conversation'
+                  $ref: '#/components/schemas/CorrelationCandidate'
         '404':
-          description: Conversation not found
+          description: Correlation target not found.
+
   /search:
     get:
-      summary: Hybrid Search
+      tags:
+        - Search
+      summary: Search knowledge base
+      description: Performs a hybrid search across the knowledge base.
       parameters:
         - in: query
-          name: query
+          name: q
+          schema:
+            type: string
           required: true
-          schema: { type: string }
           description: Search query string.
         - in: query
-          name: type
-          schema: { type: string, enum: [keyword, semantic, hybrid], default: hybrid }
-          description: Type of search to perform.
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Maximum number of results to return.
       responses:
         '200':
-          description: Search results
+          description: Search results.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/SearchResult'
-  /correlate:
-    post:
-      summary: Correlate Conversations/Messages
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                conversation_id:
-                  type: string
-                  description: ID of the conversation to correlate.
-                message_id:
-                  type: string
-                  description: ID of the message to correlate.
-              oneOf:
-                - required: [conversation_id]
-                - required: [message_id]
-      responses:
-        '200':
-          description: List of correlated items
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CorrelationResult'
+
   /export/obsidian:
     post:
-      summary: Export to Obsidian Format
+      tags:
+        - Export
+      summary: Export knowledge to Obsidian format
+      description: Exports synthesized knowledge into a format compatible with Obsidian.
       requestBody:
         required: true
         content:
@@ -126,33 +342,20 @@ paths:
             schema:
               type: object
               properties:
-                conversation_ids:
-                  type: array
-                  items:
-                    type: string
-                  description: List of conversation IDs to export.
-                include_embeddings:
-                  type: boolean
-                  default: false
-                  description: Whether to include embedding data in the export.
+                exportPath:
+                  type: string
+                  description: The local path where Obsidian files should be exported.
       responses:
-        '200':
-          description: Export successful, returns file path or content
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  file_path:
-                    type: string
-                    description: Path to the exported file.
-        '400':
-          description: Invalid request
+        '202':
+          description: Export task queued.
+
 components:
   schemas:
     FeedbackInput:
       type: object
-      required: [type, message]
+      required:
+        - type
+        - message
       properties:
         type:
           type: string
@@ -161,94 +364,170 @@ components:
         message:
           type: string
           description: The feedback message.
-        context:
+        userId:
           type: string
+          format: uuid
           nullable: true
-          description: Optional context or additional details for the feedback.
-    Conversation:
+          description: Optional user ID if authenticated.
+    FeedbackListItem:
       type: object
       properties:
-        id:
+        feedbackId:
           type: string
-          description: Unique identifier for the conversation.
-        title:
+          format: uuid
+        feedbackType:
           type: string
-          description: Title or summary of the conversation.
-        created_at:
+        message:
+          type: string
+        status:
+          type: string
+        submittedAt:
           type: string
           format: date-time
-          description: Timestamp when the conversation was created.
-        updated_at:
+        userId:
           type: string
-          format: date-time
-          description: Timestamp when the conversation was last updated.
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/Message'
-          description: List of messages in the conversation.
-    Message:
+          format: uuid
+          nullable: true
+    FeedbackStatusInput:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: New feedback status value.
+    FeedbackResponse:
       type: object
       properties:
-        id:
+        message:
           type: string
-          description: Unique identifier for the message.
-        conversation_id:
+          example: Feedback received and being processed.
+        feedbackId:
           type: string
-          description: ID of the conversation this message belongs to.
-        role:
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+
+    IngestionInput:
+      type: object
+      required:
+        - sourceType
+        - content
+      properties:
+        sourceType:
           type: string
-          enum: [user, assistant]
-          description: Role of the speaker (user or assistant).
+          description: Type of the data source (e.g., "deepseek_chat", "deepthink", "grok_chat").
         content:
           type: string
-          description: The content of the message.
-        timestamp:
+          description: The raw content to be ingested.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata associated with the content.
+    IngestionResponse:
+      type: object
+      properties:
+        message:
           type: string
-          format: date-time
-          description: Timestamp when the message was sent.
-        embedding:
-          type: array
-          items:
-            type: number
-          nullable: true
-          description: Optional vector embedding of the message content.
-    SearchResult:
+          example: Ingestion accepted and normalization scheduled.
+        rawDataId:
+          type: string
+          format: uuid
+    IngestionStatus:
+      type: object
+      properties:
+        rawDataId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: NORMALIZED
+    AnalysisInput:
+      type: object
+      required:
+        - rawDataId
+      properties:
+        rawDataId:
+          type: string
+          format: uuid
+    AnalysisQueued:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Analysis queued for execution.
+        rawDataId:
+          type: string
+          format: uuid
+    AnalysisStatus:
+      type: object
+      properties:
+        rawDataId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: ANALYZED
+    CorrelationInput:
+      type: object
+      required:
+        - rawDataId
+      properties:
+        rawDataId:
+          type: string
+          format: uuid
+    CorrelationQueued:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Correlation candidate generation queued.
+        rawDataId:
+          type: string
+          format: uuid
+    CorrelationCandidate:
       type: object
       properties:
         id:
           type: string
-          description: ID of the found item (conversation or message).
-        type:
+          format: uuid
+        rawDataId:
           type: string
-          enum: [conversation, message]
-          description: Type of the found item.
-        title:
+          format: uuid
+        sourceEntityId:
           type: string
-          nullable: true
-          description: Title or excerpt of the found item.
-        excerpt:
+          format: uuid
+        targetEntityId:
           type: string
-          description: A snippet of the content matching the search query.
+          format: uuid
         score:
           type: number
           format: float
-          description: Relevance score of the search result.
-    CorrelationResult:
+        status:
+          type: string
+          example: PENDING
+        rationale:
+          type: string
+
+    SearchResult:
       type: object
       properties:
-        id:
+        turnId:
           type: string
-          description: ID of the correlated item (conversation or message).
-        type:
+          format: uuid
+        conversationId:
           type: string
-          enum: [conversation, message]
-          description: Type of the correlated item.
-        title:
+          format: uuid
+        turnIndex:
+          type: integer
+        timestamp:
           type: string
-          nullable: true
-          description: Title or excerpt of the correlated item.
-        similarity_score:
+          format: date-time
+        snippet:
+          type: string
+        score:
           type: number
           format: float
-          description: Similarity score with the queried item.
+        sentiment:
+          type: string
+          nullable: true
+```

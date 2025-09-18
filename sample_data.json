@@ -1,0 +1,55 @@
+[
+  {
+    "username": "user1",
+    "email": "user1@example.com",
+    "conversations": [
+      {
+        "title": "Conversation 1 with user1",
+        "source_platform": "ChatGPT",
+        "source_id": "chatgpt-conv-1",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hi there!",
+            "timestamp": "2025-09-17T10:00:00Z"
+          },
+          {
+            "role": "assistant",
+            "content": "Hello! How can I help you?",
+            "timestamp": "2025-09-17T10:01:00Z"
+          }
+        ]
+      },
+      {
+        "title": "Conversation 2 with user1",
+        "source_platform": "Bard",
+        "source_id": "bard-conv-1",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Tell me a joke.",
+            "timestamp": "2025-09-17T11:00:00Z"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "username": "user2",
+    "email": "user2@example.com",
+    "conversations": [
+      {
+        "title": "Conversation with user2",
+        "source_platform": "Claude",
+        "source_id": "claude-conv-1",
+        "messages": [
+          {
+            "role": "user",
+            "content": "What is the capital of France?",
+            "timestamp": "2025-09-17T12:00:00Z"
+          }
+        ]
+      }
+    ]
+  }
+]

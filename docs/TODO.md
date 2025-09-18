@@ -1,11 +1,14 @@
 # NexusKnowledge Master TODO List
+
 This document tracks the high-level project plan from bootstrap to completion.
 
 ---
 
 ### Phase 0: Environment & Guardrail Setup
-*Objective: Prepare the development environment and automated quality checks.*
+
+_Objective: Prepare the development environment and automated quality checks._
 **Status: COMPLETED**
+
 - [x] 1. Repository Initialization
 - [x] 2. Implement Project Environment Setup
 - [x] 3. Automate Guardrails (CI & Pre-Commit)
@@ -15,8 +18,10 @@ This document tracks the high-level project plan from bootstrap to completion.
 ---
 
 ### Phase P0: AI-Led Planning
-*Objective: Use the Weaver persona to generate all core planning documents.*
+
+_Objective: Use the Weaver persona to generate all core planning documents._
 **Status: COMPLETED**
+
 - [x] 1. Execute the Final Kickoff Prompt
 - [x] 2. Generate `docs/BUILD_PLAN.md`
 - [x] 3. Generate `docs/TEST_MATRIX.md`
@@ -26,46 +31,54 @@ This document tracks the high-level project plan from bootstrap to completion.
 
 ---
 
-### Phase P1: Foundation & Data Ingestion
-*Objective: Establish core project structure, data ingestion pipeline, and initial data model.*
-**Status: PENDING**
-- [ ] P1.1 Project Setup & CI/CD
-- [ ] P1.2 Initial Data Model & Database Setup
-- [ ] P1.3 Data Ingestion Service (Basic)
-- [ ] P1.4 DVC Setup
+### Phase P1: Foundational Services & Data Model
+
+_Objective: Establish the core infrastructure, database schema, and foundational services._
+**Status: COMPLETED**
+
+- [x] P1.1: Database Schema Implementation
+- [x] P1.2: Core API Endpoint Setup
+- [x] P1.3: MLflow Integration for Experiment Tracking
+- [x] P1.4: DVC Integration for Data Versioning
 
 ---
 
-### Phase P2: Core API & User Feedback
-*Objective: Develop the core local-only API, including the user feedback loop, and basic data retrieval.*
-**Status: PENDING**
-- [ ] P2.1 API Framework Setup
-- [ ] P2.2 User Feedback Endpoint (`/v1/feedback`)
-- [ ] P2.3 Basic Data Retrieval Endpoints
+### Phase P2: Data Ingestion & Normalization
+
+_Objective: Develop robust pipelines for ingesting and normalizing data from various sources._
+**Status: COMPLETED**
+
+- [x] P2.1: Initial Data Ingestion Pipeline
+- [x] P2.2: Data Normalization Routines
 
 ---
 
-### Phase P3: Analysis, Correlation & MLflow
-*Objective: Implement initial data analysis, correlation mechanisms, and integrate MLflow for experiment tracking.*
-**Status: PENDING**
-- [ ] P3.1 MLflow Setup
-- [ ] P3.2 Basic Text Preprocessing & Embedding Generation
-- [ ] P3.3 Initial Correlation Logic
+### Phase P3: Analysis & Modeling (Local-First)
+
+_Objective: Integrate local AI models and develop analysis pipelines for deep insights._
+**Status: COMPLETED**
+
+- [x] P3.1: Local AI Model Integration
+- [x] P3.2: Analysis Pipeline Development
 
 ---
 
-### Phase P4: Hybrid Search & Web UI
-*Objective: Implement hybrid search capabilities and develop the initial web application user interface.*
-**Status: PENDING**
-- [ ] P4.1 Hybrid Search Backend
-- [ ] P4.2 Basic Web UI Framework
-- [ ] P4.3 Conversation Display & Search Interface
+### Phase P4: Correlation & Pairing
+
+_Objective: Implement mechanisms to correlate and pair related pieces of information._
+**Status: COMPLETED**
+
+- [x] P4.1: Candidate Generation for Correlation
+- [x] P4.2: Evidence Fusion & Re-weaving
 
 ---
 
-### Phase P5: Export, Observability & Refinement
-*Objective: Implement knowledge base export, enhance observability, and refine existing features.*
-**Status: PENDING**
-- [ ] P5.1 Knowledge Base Export (Obsidian)
-- [ ] P5.2 Basic Observability (Logging & Metrics)
-- [ ] P5.3 Performance Optimization (Initial)
+### Phase P5: Hybrid Search, Retrieval & User Experience
+
+_Objective: Deliver a functional search interface, user feedback mechanism, and knowledge export._
+**Status: COMPLETED**
+
+- [x] P5.1: Hybrid Search & Retrieval Implementation
+- [x] P5.2: User Feedback Loop Implementation
+- [x] P5.3: Knowledge Base Export to Obsidian
+- [x] P5.4: Basic Web Application UI

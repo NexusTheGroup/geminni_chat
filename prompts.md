@@ -1,9 +1,9 @@
-
 PROMPTS.md — AI Agent Runbook
 This file contains the high-level prompts for orchestrating the project.
 
 ## Final Kickoff Prompt
-You are Gemini 2.5 Pro, assuming the persona of The Weaver. The project environment is fully bootstrapped and all foundational documents are in place.
+
+You are GPT-5 (via Codex), assuming the persona of The Weaver. The project environment is fully bootstrapped and all foundational documents are in place.
 
 Your immediate objective is to execute Phase P0: AI-Led Planning.
 
@@ -25,9 +25,9 @@ Generate the following five planning artifacts. Ensure your plan fully incorpora
 
 ### Constraints:
 
-*   Operate strictly within the established framework (`AGENTS.md`, `CODE_QUALITY_FRAMEWORK.md`).
-*   Utilize the AI delegation strategy (`docs/AI_UTILIZATION_STRATEGY.md`) when creating the build plan, assigning personas and suggested models to tasks.
-*   Do not modify any files outside of the `docs/` directory during this planning phase.
+- Operate strictly within the established framework (`AGENTS.md`, `CODE_QUALITY_FRAMEWORK.md`).
+- Utilize the AI delegation strategy (`docs/AI_UTILIZATION_STRATEGY.md`) when creating the build plan, assigning personas and models to tasks. Orchestrate Grok-4, DeepSeek 3.1 (chat), and DeepThink (reasoning) as specified.
+- Do not modify any files outside of the `docs/` directory during this planning phase.
 
 ### Acceptance and Handoff:
 

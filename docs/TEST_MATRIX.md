@@ -1,172 +1,163 @@
-# Test Matrix: NexusKnowledge
+# Test Matrix: NexusKnowledge Project
 
-This document outlines the comprehensive testing plan for the NexusKnowledge system, mapping features to specific unit, integration, and end-to-end tests. It aligns with the `CODE_QUALITY_FRAMEWORK.md` to ensure robust test coverage.
+This document outlines the comprehensive testing plan for the NexusKnowledge system, mapping features to specific unit, integration, and end-to-end tests. It aligns with the phases and tasks defined in `docs/BUILD_PLAN.md`.
 
----
+## Phase P1: Foundational Services & Data Model
 
-## General Testing Principles
+### P1.1: Database Schema Implementation
 
-*   **Unit Tests:** Focus on isolated functions, methods, and classes. Mock external dependencies.
-*   **Integration Tests:** Verify interactions between different components (e.g., API and database, service and external library).
-*   **End-to-End (E2E) Tests:** Simulate user flows through the entire system, from UI to backend and database.
-*   **Code Coverage:** Aim for a minimum of 80% unit test coverage as per `CODE_QUALITY_FRAMEWORK.md`.
+- **Unit Tests:**
+  - Verify individual table and column definitions.
+  - Test constraints (e.g., primary keys, foreign keys, unique constraints).
+- **Integration Tests:**
+  - Execute migration scripts against a test database.
+  - Verify successful schema creation and data integrity after migrations.
+- **End-to-End Tests:**
+  - (N/A for schema directly, covered by API interaction tests)
 
----
+### P1.2: Core API Endpoint Setup
 
-## Phase P1: Foundation & Data Ingestion
+- **Unit Tests:**
+  - Test individual API handler functions for correct logic and error handling.
+- **Integration Tests:**
+  - Send requests to `/v1/status` and assert a 200 OK response.
+  - Verify basic CRUD operations against the database via API endpoints.
+  - Retrieve existing records via `GET /v1/feedback/{feedbackId}` after asynchronous persistence completes.
+- **End-to-End Tests:**
+  - Deploy the application and hit the `/v1/status` endpoint from an external client.
 
-### P1.1 Project Setup & CI/CD
-*   **Unit Tests:** N/A (Configuration-focused)
-*   **Integration Tests:**
-    *   Verify CI pipeline executes successfully on push/PR.
-    *   Validate pre-commit hooks run and enforce formatting/linting rules.
-*   **E2E Tests:** N/A
+### P1.3: MLflow Integration for Experiment Tracking
 
-### P1.2 Initial Data Model & Database Setup
-*   **Unit Tests:**
-    *   Database connection utility functions.
-    *   ORM model definitions (e.g., field types, relationships).
-*   **Integration Tests:**
-    *   Schema migration tests (applying and rolling back migrations).
-    *   Basic CRUD operations (Create, Read, Update, Delete) against a test database for core entities (users, conversations, messages).
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test MLflow logging functions with mock data.
+- **Integration Tests:**
+  - Run a sample experiment that logs parameters, metrics, and artifacts to a local MLflow instance.
+  - Verify that logged data appears correctly in the MLflow UI.
+- **End-to-End Tests:**
+  - (Covered by integration tests for now, as MLflow is an internal tool)
 
-### P1.3 Data Ingestion Service (Basic)
-*   **Unit Tests:**
-    *   Data parsing logic for various input formats.
-    *   Normalization and transformation functions.
-    *   Error handling for malformed input data.
-*   **Integration Tests:**
-    *   Ingestion of valid sample data into the test database, verifying data integrity and completeness.
-    *   Testing ingestion with invalid data to ensure proper error handling and logging.
-*   **E2E Tests:** N/A
+### P1.4: DVC Integration for Data Versioning
 
-### P1.4 DVC Setup
-*   **Unit Tests:** N/A
-*   **Integration Tests:**
-    *   DVC repository initialization and configuration verification.
-    *   Tracking and versioning of a dummy data file.
-    *   Retrieval of different versions of a DVC-tracked file.
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test DVC command wrappers with mock file paths.
+- **Integration Tests:**
+  - Version a sample data file using DVC and verify its presence in the DVC cache.
+  - Attempt to reproduce a previous version of a data file.
+- **End-to-End Tests:**
+  - (Covered by integration tests for now, as DVC is an internal tool)
 
----
+## Phase P2: Data Ingestion & Normalization
 
-## Phase P2: Core API & User Feedback
+### P2.1: Initial Data Ingestion Pipeline
 
-### P2.1 API Framework Setup
-*   **Unit Tests:** N/A (Framework setup)
-*   **Integration Tests:**
-    *   Verify the `/health` endpoint returns a 200 OK response.
-    *   API server starts and stops cleanly.
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test individual parsing and extraction functions for various data formats.
+- **Integration Tests:**
+  - Ingest a known dataset and verify its presence and correctness in the database.
+  - Test error handling for malformed input data.
+  - Exercise API ingestion endpoint to confirm Celery normalization is queued.
+- **End-to-End Tests:**
+  - Run the full ingestion pipeline with a representative dataset and verify the final state of the database.
 
-### P2.2 User Feedback Endpoint (`/v1/feedback`)
-*   **Unit Tests:**
-    *   Validation logic for feedback payload (e.g., required fields, data types).
-*   **Integration Tests:**
-    *   POST requests to `/v1/feedback` with valid feedback data, verifying database persistence.
-    *   POST requests with invalid/missing data, asserting appropriate error responses (e.g., 400 Bad Request).
-    *   Security tests (e.g., rate limiting, input sanitization).
-*   **E2E Tests:** N/A (Will be covered by UI E2E tests in P4.3)
+### P2.2: Data Normalization Routines
 
-### P2.3 Basic Data Retrieval Endpoints
-*   **Unit Tests:**
-    *   Data serialization/deserialization logic for API responses.
-*   **Integration Tests:**
-    *   GET requests for conversation lists, verifying correct data structure and content.
-    *   GET requests for individual conversation details by ID.
-    *   Testing filtering and pagination parameters.
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test individual normalization functions with various input scenarios (e.g., valid, invalid, edge cases).
+- **Integration Tests:**
+  - Ingest raw data, apply normalization, and verify the transformed data in the database.
+  - Confirm ingestion status endpoint reflects the final state post-normalization.
+- **End-to-End Tests:**
+  - (Covered by P2.1 E2E tests, ensuring normalized data is correct)
 
----
+## Phase P3: Analysis & Modeling (Local-First)
 
-## Phase P3: Analysis, Correlation & MLflow
+### P3.1: Local AI Model Integration
 
-### P3.1 MLflow Setup
-*   **Unit Tests:** N/A
-*   **Integration Tests:**
-    *   MLflow server accessibility and basic functionality (e.g., logging a dummy run).
-    *   Verification that MLflow tracking URI is correctly configured.
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test model loading and inference with mock inputs and expected outputs.
+  - Validate heuristic sentiment predictions across positive/negative samples.
+- **Integration Tests:**
+  - Run the integrated model on a sample dataset and verify the output and its storage.
+  - Verify that model performance metrics are logged to MLflow.
+  - Ensure Celery analysis task completes without blocking the API thread.
+- **End-to-End Tests:**
+  - (Covered by P3.2 E2E tests)
 
-### P3.2 Basic Text Preprocessing & Embedding Generation
-*   **Unit Tests:**
-    *   Text cleaning functions (e.g., punctuation removal, lowercasing).
-    *   Tokenization logic.
-    *   Embedding model inference for known inputs, verifying output shape and type.
-*   **Integration Tests:**
-    *   Full pipeline from raw text input to generated and stored embeddings (DVC-tracked).
-    *   Verification that embedding generation process is logged as an MLflow run with relevant parameters and metrics.
-*   **E2E Tests:** N/A
+### P3.2: Analysis Pipeline Development
 
-### P3.3 Initial Correlation Logic
-*   **Unit Tests:**
-    *   Similarity calculation algorithms (e.g., cosine similarity).
-    *   Core correlation algorithm logic (e.g., nearest neighbors).
-*   **Integration Tests:**
-    *   Correlation of sample conversation data, verifying the accuracy and relevance of correlated items.
-    *   Verification that correlation results and metrics are logged as part of an MLflow experiment.
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test individual steps of the analysis pipeline.
+- **Integration Tests:**
+  - Run the full analysis pipeline on a normalized dataset and verify the processed results in the database.
+  - Exercise `/api/v1/analysis` endpoints to confirm job dispatch and status reporting.
+- **End-to-End Tests:**
+  - Ingest raw data, run normalization and analysis pipelines, and verify the final analyzed data.
 
----
+## Phase P4: Correlation & Pairing
 
-## Phase P4: Hybrid Search & Web UI
+### P4.1: Candidate Generation for Correlation
 
-### P4.1 Hybrid Search Backend
-*   **Unit Tests:**
-    *   Keyword search query parsing and execution logic.
-    *   Vector similarity search query execution logic.
-    *   Result merging and ranking algorithms for hybrid search.
-*   **Integration Tests:**
-    *   API endpoints for hybrid search, testing various keyword and semantic queries.
-    *   Relevance and recall of search results for a diverse set of test cases.
-    *   Performance benchmarks for search queries.
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test candidate generation algorithms with various synthetic datasets.
+  - Verify duplicate prevention and scoring thresholds for sentiment-based candidates.
+- **Integration Tests:**
+  - Run candidate generation on a processed dataset and verify the generated candidates.
+  - Ensure `/api/v1/correlation` queues Celery tasks without blocking.
+- **End-to-End Tests:**
+  - (Covered by P4.2 E2E tests)
 
-### P4.2 Basic Web UI Framework
-*   **Unit Tests:** N/A (Framework setup)
-*   **Integration Tests:**
-    *   Frontend build process and asset compilation.
-    *   Basic page rendering and navigation.
-*   **E2E Tests:** N/A
+### P4.2: Evidence Fusion & Re-weaving
 
-### P4.3 Conversation Display & Search Interface
-*   **Unit Tests:**
-    *   UI component rendering (e.g., ConversationCard, SearchBar).
-    *   State management logic for UI components.
-*   **Integration Tests:**
-    *   UI interaction with API: displaying conversation lists, submitting search queries, rendering search results.
-    *   Feedback form submission through the UI to the `/v1/feedback` endpoint.
-*   **E2E Tests:**
-    *   User flow: browsing conversations, performing keyword and semantic searches, viewing search results.
-    *   User flow: submitting feedback via the UI and verifying backend persistence.
-    *   Accessibility testing for key UI elements.
+- **Unit Tests:**
+  - Test evidence fusion logic with different combinations of evidence.
+  - Confirm relationships persist with correct metadata and status transitions.
+- **Integration Tests:**
+  - Run evidence fusion on generated candidates and verify the updated knowledge graph/correlations in the database.
+  - Exercise `/api/v1/correlation/{rawDataId}/fuse` endpoint to confirm queueing and data changes.
+- **End-to-End Tests:**
+  - Run the full correlation pipeline from processed data to updated knowledge graph.
 
----
+## Phase P5: Hybrid Search, Retrieval & User Experience
 
-## Phase P5: Export, Observability & Refinement
+### P5.1: Hybrid Search & Retrieval Implementation
 
-### P5.1 Knowledge Base Export (Obsidian)
-*   **Unit Tests:**
-    *   Markdown formatting logic for various content types (e.g., conversations, notes, links).
-    *   Internal link generation and tag formatting for Obsidian compatibility.
-*   **Integration Tests:**
-    *   Exporting sample data (conversations, correlated insights) and verifying the generated Markdown files.
-    *   Importing exported files into a test Obsidian vault and verifying correct display and linking.
-*   **E2E Tests:**
-    *   User flow: initiating a knowledge base export from the UI and verifying the output in Obsidian.
+- **Unit Tests:**
+  - Test individual search components (e.g., keyword matching, semantic similarity).
+  - Validate hybrid tokenizer edge cases and empty query handling.
+- **Integration Tests:**
+  - Perform searches against a populated database and verify the relevance and ranking of results.
+  - Ensure `/api/v1/search` returns scored results and enforces query validation.
+- **End-to-End Tests:**
+  - Deploy the application, populate with data, and perform various search queries via the UI/API, verifying results.
 
-### P5.2 Basic Observability (Logging & Metrics)
-*   **Unit Tests:** N/A
-*   **Integration Tests:**
-    *   Verification of structured log collection for API requests and service operations.
-    *   Accessibility of metrics endpoints (e.g., Prometheus `/metrics`).
-    *   Alerting mechanism tests (if implemented).
-*   **E2E Tests:** N/A
+### P5.2: User Feedback Loop Implementation
 
-### P5.3 Performance Optimization (Initial)
-*   **Unit Tests:** N/A
-*   **Integration Tests:**
-    *   Performance benchmarks for critical operations (e.g., data ingestion rate, search latency, embedding generation time).
-    *   Load testing for API endpoints.
-*   **E2E Tests:** N/A
+- **Unit Tests:**
+  - Test the API endpoint handler for `/v1/feedback` with valid and invalid payloads.
+  - Validate repository helpers for listing and status updates.
+- **Integration Tests:**
+  - Submit feedback via the API and verify its correct storage in the database.
+  - Exercise feedback listing + status update endpoints.
+- **End-to-End Tests:**
+  - Submit feedback via the UI (once available) and verify API call and database storage.
+
+### P5.3: Knowledge Base Export to Obsidian
+
+- **Unit Tests:**
+  - Test Markdown generation and front matter formatting with mock data.
+  - Validate export errors when prerequisites are missing.
+- **Integration Tests:**
+  - Export a sample knowledge graph to a local directory and verify the generated Obsidian files.
+  - Exercise `/api/v1/export/obsidian` enqueue behaviour.
+- **End-to-End Tests:**
+  - Run the full export process and verify the integrity and correctness of the exported Obsidian vault.
+
+### P5.4: Basic Web Application UI
+
+- **Unit Tests:**
+  - Test individual UI components (e.g., search bar, result display) in isolation.
+  - Verify root route returns HTML shell.
+- **Integration Tests:**
+  - Test UI components' interaction with the backend API (e.g., search queries, feedback submission).
+- **End-to-End Tests:**
+  - Deploy the full application and perform user flows (e.g., search, view results, submit feedback) through the web interface.
