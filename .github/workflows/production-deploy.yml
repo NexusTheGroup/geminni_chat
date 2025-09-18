@@ -1,10 +1,20 @@
-name: NexusKnowledge Production Deployment
+name: Production Deployment
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -31,7 +41,7 @@ jobs:
         run: npm test -- --coverage
 
       - name: Security scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -39,7 +49,8 @@ jobs:
           output: "trivy-results.sarif"
 
       - name: Upload security results
-        uses: github/codeql-action/upload-sarif@v2
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
 
@@ -55,10 +66,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -69,6 +88,7 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     environment: staging
+    if: github.event_name == 'push'
     steps:
       - name: Deploy to staging
         uses: argoproj/actions/github-application-sync@v1
@@ -80,6 +100,7 @@ jobs:
     needs: deploy-to-staging
     runs-on: ubuntu-latest
     environment: production
+    if: github.event_name == 'push'
     steps:
       - name: Trigger ArgoCD sync
         uses: argoproj/actions/github-application-sync@v1
@@ -99,6 +120,7 @@ jobs:
     needs: production-deployment
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: github.event_name == 'push'
     steps:
       - name: Monitor deployment health
         run: |

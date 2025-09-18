@@ -43,7 +43,7 @@ This document outlines the phase-by-phase implementation plan for the NexusKnowl
       - A sample data file is successfully versioned using DVC.
       - DVC commands can reproduce a specific data version.
     - **Assigned Persona:** Helix (Data & IR Engineer)
-    - **Deliverables:** `.dvc/config`, `sample_data.json.dvc`, `tests/dvc/test_dvc_setup.py`
+    - **Deliverables:** `.dvc/config`, `dvc.yaml`, `dvc.lock`, `tests/dvc/test_dvc_setup.py`
 
 ## Phase P2: Data Ingestion & Normalization
 

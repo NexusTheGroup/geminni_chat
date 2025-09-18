@@ -1,0 +1,19 @@
+schema: '2.0'
+stages:
+  prepare_sample:
+    cmd: python scripts/dvc/prepare_sample_dataset.py --input sample_data.json 
+      --output data/processed/sample_data.json
+    deps:
+    - path: sample_data.json
+      hash: md5
+      md5: 3fb944018f900f2510204b07b34818b6
+      size: 1295
+    - path: scripts/dvc/prepare_sample_dataset.py
+      hash: md5
+      md5: d50e41fd63bdfbf89f62e301a4aa4bcf
+      size: 928
+    outs:
+    - path: data/processed/sample_data.json
+      hash: md5
+      md5: 3fb944018f900f2510204b07b34818b6
+      size: 1295

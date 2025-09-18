@@ -6,16 +6,28 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   actionlint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run actionlint
-        uses: raven-actions/actionlint@v1
+      - name: Run actionlint with reviewdog
+        uses: reviewdog/action-actionlint@v1
         with:
-          fail-on-error: true
+          github_token: ${{ github.token }}
+          reporter: github-pr-check
+          level: error
+          fail_on_error: true
 
   python-lint:
     runs-on: ubuntu-latest

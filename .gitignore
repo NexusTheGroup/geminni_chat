@@ -32,12 +32,10 @@ yarn-error.log*
 .vs/
 
 # Data and ML
-.dvc/
 .dvc/cache/
 .dvc/tmp/
 .dvc/plots/
-dvc.lock
-dvc.yaml
+.dvc/config.local
 data/
 datasets/
 models/

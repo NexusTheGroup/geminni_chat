@@ -60,10 +60,11 @@ def export_to_obsidian(
         },
     )
 
-    body_lines: list[str] = [f"# {title}"]
+    body_lines: list[str] = [f"# {title}", ""]
     for turn in turns:
         heading = f"## {turn.speaker.title()} - turn {turn.turn_index}"
         body_lines.append(heading)
+        body_lines.append("")
         timestamp = turn.timestamp
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC)
@@ -74,9 +75,7 @@ def export_to_obsidian(
             body_lines.append(text)
         body_lines.append("")
 
-    content = (
-        frontmatter + "\n".join(line.rstrip() for line in body_lines).rstrip() + "\n"
-    )
+    content = frontmatter + "\n".join(line.rstrip() for line in body_lines).rstrip() + "\n"
     file_path.write_text(content, encoding="utf-8")
     return [file_path]
 
@@ -88,8 +87,8 @@ def _build_frontmatter(payload: dict[str, Any]) -> str:
         if value is None:
             continue
         lines.extend(_format_yaml_entry(key, value))
-    lines.append("---\n")
-    return "\n".join(lines)
+    lines.append("---")
+    return "\n".join(lines) + "\n\n"
 
 
 def _format_yaml_entry(key: str, value: Any) -> list[str]:
@@ -118,10 +117,21 @@ def _escape_yaml_value(value: Any) -> str:
     text = str(value)
     if not text:
         return "''"
+    if _looks_like_iso8601(text):
+        return text
     if any(char in text for char in ":#[]{}\n\r") or text.strip() != text:
         escaped = text.replace('"', '\\"')
         return f'"{escaped}"'
     return text
+
+
+_ISO8601_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
+)
+
+
+def _looks_like_iso8601(value: str) -> bool:
+    return bool(_ISO8601_PATTERN.match(value))
 
 
 def _slugify(value: str) -> str | None:
