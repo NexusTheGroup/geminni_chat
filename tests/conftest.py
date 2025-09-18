@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -201,8 +202,6 @@ def clean_mlflow_context():
         while mlflow.active_run():
             mlflow.end_run()
     except Exception as e:
-        import logging
-
         logging.error(f"Error ending mlflow run: {e}")
 
     yield
@@ -212,8 +211,6 @@ def clean_mlflow_context():
         while mlflow.active_run():
             mlflow.end_run()
     except Exception as e:
-        import logging
-
         logging.error(f"Error ending mlflow run: {e}")
 
 

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Local-first AI conversation management and knowledge synthesis tool.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "test": "npm --prefix frontend test"
   },
   "author": "GPT Orchestrator (via Codex)",
   "license": "UNLICENSED"
