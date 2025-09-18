@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -13,7 +14,10 @@ from sqlalchemy.exc import ArgumentError
 AppEnv = Literal["local", "test", "prod"]
 
 _ALLOWED_LOG_LEVELS = {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"}
-_DEFAULT_SECRET_PLACEHOLDER = "CHANGE_ME_IN_PRODUCTION"
+_DEFAULT_SECRET_PLACEHOLDER = os.getenv(
+    "GEMINNI_SECRET_PLACEHOLDER",
+    "CHANGE_ME_IN_PRODUCTION",
+)
 
 
 class ConfigurationError(RuntimeError):

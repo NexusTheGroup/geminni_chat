@@ -200,8 +200,10 @@ def clean_mlflow_context():
     try:
         while mlflow.active_run():
             mlflow.end_run()
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+
+        logging.error(f"Error ending mlflow run: {e}")
 
     yield
 
@@ -209,8 +211,10 @@ def clean_mlflow_context():
     try:
         while mlflow.active_run():
             mlflow.end_run()
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+
+        logging.error(f"Error ending mlflow run: {e}")
 
 
 @pytest.fixture()
